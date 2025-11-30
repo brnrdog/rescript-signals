@@ -1,0 +1,33 @@
+{
+  "name": "rescript-signals",
+  "version": "0.0.0",
+  "description": "Reactive Signals primitives implemented in ReScript.",
+  "module": "./dist/rescript-signals.mjs",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "watch": "rescript -w",
+    "build": "rescript",
+    "clean": "rescript clean"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brnrdog/rescript-signals.git"
+  },
+  "keywords": [
+    "rescript",
+    "signals",
+    "reactive",
+    "functional",
+    "programming"
+  ],
+  "author": "Bernardo Gurgel <brnrdog@hey.com>",
+  "license": "SEE LICENSE IN LICENSE",
+  "bugs": {
+    "url": "https://github.com/brnrdog/rescript-signals/issues"
+  },
+  "homepage": "https://github.com/brnrdog/rescript-signals#readme",
+  "devDependencies": {
+    "@rescript/core": "^1.6.1",
+    "rescript": "^12.0.0"
+  }
+}
