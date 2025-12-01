@@ -2,13 +2,26 @@
   "name": "rescript-signals",
   "version": "0.0.0",
   "description": "Reactive Signals primitives implemented in ReScript.",
-  "module": "./dist/rescript-signals.mjs",
+  "main": "./src/Signals.res.mjs",
+  "module": "./src/Signals.res.mjs",
+  "types": "./src/Signals.res.d.ts",
+  "files": [
+    "src/**/*.res",
+    "src/**/*.res.mjs",
+    "src/**/*.res.d.ts",
+    "lib/bs",
+    "rescript.json",
+    "CHANGELOG.md",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "test": "rescript && node tests/RunTests.res.mjs",
     "watch": "rescript -w",
     "build": "rescript",
     "clean": "rescript clean",
-    "prepare": "husky"
+    "prepare": "husky",
+    "semantic-release": "semantic-release"
   },
   "repository": {
     "type": "git",
