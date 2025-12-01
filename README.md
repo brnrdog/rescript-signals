@@ -177,15 +177,6 @@ npm run watch
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
-This project uses:
-- [Conventional Commits](https://www.conventionalcommits.org/) for commit messages
-- [Semantic Release](https://semantic-release.gitbook.io/) for automated releases
-- The 50/72 rule for commit message formatting
-
 ## License
 
 See [LICENSE](LICENSE) for details.
-
-## Credits
-
-Created by [Bernardo Gurgel](https://github.com/brnrdog)
