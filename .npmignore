@@ -2,6 +2,7 @@
 .husky/
 .github/
 tests/
+lib/bs/tests/
 node_modules/
 
 # Config files
