@@ -51,6 +51,4 @@ let set = (signal: t<'a>, newValue: 'a): unit => {
   }
 }
 
-let update = (signal: t<'a>, fn: 'a => 'a): unit => {
-  set(signal, fn(signal.value.contents))
-}
+let update = (signal: t<'a>, fn: 'a => 'a): unit => signal->set(fn(signal.value.contents))
