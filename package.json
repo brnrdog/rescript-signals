@@ -4,7 +4,7 @@
   "description": "Reactive Signals primitives implemented in ReScript.",
   "module": "./dist/rescript-signals.mjs",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "rescript && node tests/RunTests.res.mjs",
     "watch": "rescript -w",
     "build": "rescript",
     "clean": "rescript clean"
