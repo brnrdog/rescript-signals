@@ -1,0 +1,32 @@
+# Development files
+.husky/
+.github/
+tests/
+node_modules/
+
+# Config files
+.gitignore
+.releaserc.json
+commitlint.config.js
+.bsb.lock
+.merlin
+
+# Documentation (except what we want to include)
+CONTRIBUTING.md
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test and build artifacts
+coverage/
+*.log
+npm-debug.log*
+bundlemeta.json

@@ -6,3 +6,20 @@
 .merlin
 *.res.mjs
 bundlemeta.json
+
+# npm
+npm-debug.log*
+package-lock.json.bak
+
+# Test coverage
+coverage/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
