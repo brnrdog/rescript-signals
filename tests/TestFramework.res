@@ -162,7 +162,9 @@ let runSuites = (suites: array<testSuite>): unit => {
 
   if totalFailed.contents > 0 {
     Console.log("❌ Some tests failed\n")
+    %raw(`process.exit(1)`)
   } else {
     Console.log("✅ All tests passed!\n")
+    %raw(`process.exit(0)`)
   }
 }
