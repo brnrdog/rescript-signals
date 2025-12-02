@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file. See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## <small>1.0.1 (2025-12-02)</small>
+
+* docs: update README ([c9b2461](https://github.com/brnrdog/rescript-signals/commit/c9b2461))
+
 ## 1.0.0 (2025-12-02)
 
 * chore: add .npmrc ([00a730a](https://github.com/brnrdog/rescript-signals/commit/00a730a))
