@@ -211,10 +211,9 @@ let flush = (): unit => {
           // Process any signals that became orphaned during retracking
           orphanedSignals->Set.forEach(signalId => {
             switch signalObservers->Map.get(signalId) {
-            | Some(obsSet) if obsSet->Set.size == 0 => {
-                // Still orphaned after retracking, dispose it
-                autoDisposeComputed(signalId)
-              }
+            | Some(obsSet) if obsSet->Set.size == 0 =>
+              // Still orphaned after retracking, dispose it
+              autoDisposeComputed(signalId)
             | _ => () // Has subscribers now, keep it
             }
           })
@@ -232,8 +231,15 @@ let schedule = (observerId: int): unit => {
 
   if !flushing.contents {
     flushing := true
-    flush()
-    flushing := false
+    try {
+      flush()
+      flushing := false
+    } catch {
+    | exn => {
+        flushing := false
+        throw(exn)
+      }
+    }
   }
 }
 
