@@ -42,14 +42,14 @@ Please read our [Commit Convention Guide](.github/COMMIT_CONVENTION.md) for deta
 - **feat**: New feature (minor version bump)
 - **fix**: Bug fix (patch version bump)
 - **perf**: Performance improvement (patch version bump)
-- **docs**: Documentation changes (patch version bump)
-- **style**: Code style changes (patch version bump)
 - **refactor**: Code refactoring (patch version bump)
-- **test**: Test changes (patch version bump)
-- **build**: Build system changes (patch version bump)
-- **ci**: CI changes (patch version bump)
-- **chore**: Other changes (no version bump)
 - **revert**: Revert previous commit (patch version bump)
+- **docs**: Documentation changes (no version bump)
+- **style**: Code style changes (no version bump)
+- **test**: Test changes (no version bump)
+- **build**: Build system changes (no version bump)
+- **ci**: CI changes (no version bump)
+- **chore**: Other changes (no version bump)
 
 ### Breaking Changes
 
@@ -123,9 +123,9 @@ Releases are automated using semantic-release:
 ### Version Bumping
 
 - `feat`: Minor version bump (0.x.0)
-- `fix`, `perf`, `docs`, etc.: Patch version bump (0.0.x)
+- `fix`, `perf`, `refactor`, `revert`: Patch version bump (0.0.x)
 - `BREAKING CHANGE`: Major version bump (x.0.0)
-- `chore`: No version bump
+- `docs`, `style`, `test`, `build`, `ci`, `chore`: No version bump
 
 ## Code Style
 
