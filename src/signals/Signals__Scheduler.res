@@ -127,26 +127,20 @@ let computeLevel = (observer: Observer.t): int => {
 
   | #Computed(_) => {
       // Computeds run based on dependency depth
+      // Track producer→consumer edges directly by checking if dependencies are computed signals
       let maxDepLevel = ref(0)
 
       observer.deps->Set.forEach(signalId => {
-        switch signalObservers->Map.get(signalId) {
-        | Some(obsSet) =>
-          obsSet->Set.forEach(depObsId => {
-            if depObsId != observer.id {
-              // Avoid self-reference
-              switch observers->Map.get(depObsId) {
-              | Some(depObs) =>
-                switch depObs.kind {
-                | #Computed(_) if depObs.level > maxDepLevel.contents => maxDepLevel := depObs.level
-                | #Effect => () // Ignore effects in computed level calculation
-                | _ => ()
-                }
-              | None => ()
-              }
-            }
-          })
-        | None => ()
+        // Check if this signal is produced by a computed
+        switch computedToObserver->Map.get(signalId) {
+        | Some(producerObsId)
+          if producerObsId != observer.id => // This is a computed signal - use its level directly
+          switch observers->Map.get(producerObsId) {
+          | Some(producerObs) if producerObs.level > maxDepLevel.contents => maxDepLevel :=
+              producerObs.level
+          | _ => ()
+          }
+        | _ => ()
         }
       })
 
