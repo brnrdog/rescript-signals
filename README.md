@@ -1,7 +1,10 @@
 # rescript-signals
 
+[![Release](https://github.com/brnrdog/rescript-signals/actions/workflows/release.yml/badge.svg)](https://github.com/brnrdog/rescript-signals/actions/workflows/release.yml)
+[![npm version](https://badge.fury.io/js/rescript-signals.svg)](https://www.npmjs.com/package/rescript-signals)
+[![bundlephobia](https://badgen.net/bundlephobia/minzip/rescript-signals)](https://bundlephobia.com/package/rescript-signals)
 
-Reactive Signals primitives implemented in ReScript.
+Lightweight, zero-dependency, Signals primitives implemented in ReScript for fine-grained reactivity.
 
 ## Installation
 
@@ -172,10 +175,6 @@ npm run build
 ```bash
 npm run watch
 ```
-
-## Contributing
-
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 ## License
 
