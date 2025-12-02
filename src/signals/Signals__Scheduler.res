@@ -16,10 +16,7 @@ let currentObserverId: ref<option<int>> = ref(None)
 let pending: Set.t<int> = Set.make()
 let flushing: ref<bool> = ref(false)
 let retracking: ref<bool> = ref(false)
-
-// ============================================================================
-// PHASE 2: DEPENDENCY TRACKING
-// ============================================================================
+let orphanedSignals: Set.t<int> = Set.make() // Signals that may have become orphaned during retracking
 
 // Ensure signal has an entry in signalObservers map
 let ensureSignalBucket = (signalId: int): unit => {
@@ -78,8 +75,14 @@ and clearDeps = (observer: Observer.t): unit => {
         obsSet->Set.delete(observer.id)->ignore
 
         // Auto-disposal: check if computed has no more subscribers
-        if obsSet->Set.size == 0 && !retracking.contents {
-          autoDisposeComputed(signalId)
+        if obsSet->Set.size == 0 {
+          if retracking.contents {
+            // During retracking, defer disposal check until after retracking completes
+            orphanedSignals->Set.add(signalId)
+          } else {
+            // Not retracking, dispose immediately
+            autoDisposeComputed(signalId)
+          }
         }
       }
     | None => ()
@@ -204,6 +207,18 @@ let flush = (): unit => {
 
           // Recompute level after re-tracking
           observer.level = computeLevel(observer)
+          // Check for deferred auto-disposal after retracking completes
+          // Process any signals that became orphaned during retracking
+          orphanedSignals->Set.forEach(signalId => {
+            switch signalObservers->Map.get(signalId) {
+            | Some(obsSet) if obsSet->Set.size == 0 => {
+                // Still orphaned after retracking, dispose it
+                autoDisposeComputed(signalId)
+              }
+            | _ => () // Has subscribers now, keep it
+            }
+          })
+          Set.clear(orphanedSignals)
         }
       | None => ()
       }
