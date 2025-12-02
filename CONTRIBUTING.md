@@ -62,6 +62,26 @@ BREAKING CHANGE: The old API has been completely removed.
 Users should migrate to the new API.
 ```
 
+## Reporting Issues
+
+When reporting bugs or issues:
+
+1. **Provide a clear description** of the problem
+2. **Include a test case reproducing the issue** if possible:
+   ```rescript
+   test("demonstrates the bug", () => {
+     let signal = Signal.make(0)
+     let computed = Computed.make(() => Signal.get(signal) * 2)
+     Signal.set(signal, 5)
+     // Expected: 10, Actual: 0
+     assertEqual(Signal.peek(computed), 10, ~message="Computed should update")
+   })
+   ```
+3. Describe the expected vs actual behavior
+4. Include relevant environment details if applicable
+
+A reproducible test case helps us understand and fix the issue faster!
+
 ## Pull Request Process
 
 1. Create a feature branch from `main`
@@ -79,6 +99,8 @@ Users should migrate to the new API.
 - Code must build successfully
 - Include tests for new features or bug fixes
 - Update documentation if needed
+- **Include test cases showing edge cases or scenarios** that needed
+  fixing (highly encouraged)
 
 ## Testing
 
@@ -108,6 +130,38 @@ let tests = suite(
   ],
 )
 ```
+
+### Writing Edge Case Tests
+
+When fixing bugs or adding features, include tests that demonstrate:
+
+- **The specific scenario that was broken**:
+  ```rescript
+  test("computed updates when last subscriber removed during rerun", () => {
+    let base = Signal.make(0)
+    let computed = Computed.make(() => Signal.get(base) * 2)
+    let cleanup = ref(None)
+
+    let _effect = Effect.make(() => {
+      if Signal.get(base) > 5 {
+        // Stop reading computed after base > 5
+        ()
+      } else {
+        ignore(Signal.get(computed))
+      }
+    })
+
+    Signal.set(base, 10) // Computed should be disposed here
+    assertTrue(true, ~message="Should not crash on disposal")
+  })
+  ```
+
+- **Boundary conditions**: Empty inputs, zero values, maximum values
+- **Error conditions**: Invalid states, exceptions, resource cleanup
+- **Race conditions**: Concurrent updates, nested effects, reentrant calls
+- **Performance considerations**: Large data sets, deep nesting, many subscribers
+
+Good test cases make the codebase more robust and prevent regressions!
 
 ## Release Process
 
