@@ -1,10 +1,10 @@
 # rescript-signals
 
 [![Release](https://github.com/brnrdog/rescript-signals/actions/workflows/release.yml/badge.svg)](https://github.com/brnrdog/rescript-signals/actions/workflows/release.yml)
-[![npm version](https://badge.fury.io/js/rescript-signals.svg)](https://www.npmjs.com/package/rescript-signals)
+[![npm version](https://badgen.net/npm/v/rescript-signals)](https://www.npmjs.com/package/rescript-signals)
 [![bundlephobia](https://badgen.net/bundlephobia/minzip/rescript-signals)](https://bundlephobia.com/package/rescript-signals)
 
-Lightweight, zero-dependency, Signals primitives implemented in ReScript for fine-grained reactivity.
+Lightweight, zero-dependency, signals primitives implemented in ReScript for fine-grained reactivity.
 
 ## Installation
 
