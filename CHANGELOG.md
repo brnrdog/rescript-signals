@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## <small>1.0.2 (2025-12-02)</small>
+
+* fix(scheduler): effect level inflation ([ece7af5](https://github.com/brnrdog/rescript-signals/commit/ece7af5))
+* fix(scheduler): fix computed auto-disposal ([a9b9711](https://github.com/brnrdog/rescript-signals/commit/a9b9711))
+* fix(scheduler): flush ([d9c8744](https://github.com/brnrdog/rescript-signals/commit/d9c8744))
+* fix(scheduler): prevents crashing on exceptions ([6ce0476](https://github.com/brnrdog/rescript-signals/commit/6ce0476))
+* fix(signal): strict equal for equality by default ([6e30e39](https://github.com/brnrdog/rescript-signals/commit/6e30e39))
+* perf(scheduler): prevent extra recomputes ([591c134](https://github.com/brnrdog/rescript-signals/commit/591c134))
+* chore: revisit commits that trigger releases ([55e8148](https://github.com/brnrdog/rescript-signals/commit/55e8148))
+* docs: update README ([6d373ed](https://github.com/brnrdog/rescript-signals/commit/6d373ed))
+
 ## <small>1.0.1 (2025-12-02)</small>
 
 * docs: update README ([c9b2461](https://github.com/brnrdog/rescript-signals/commit/c9b2461))
