@@ -133,11 +133,11 @@ let computeLevel = (observer: Observer.t): int => {
       observer.deps->Set.forEach(signalId => {
         // Check if this signal is produced by a computed
         switch computedToObserver->Map.get(signalId) {
-        | Some(producerObsId)
-          if producerObsId != observer.id => // This is a computed signal - use its level directly
+        | Some(producerObsId) if producerObsId != observer.id =>
+          // This is a computed signal - use its level directly
           switch observers->Map.get(producerObsId) {
-          | Some(producerObs) if producerObs.level > maxDepLevel.contents => maxDepLevel :=
-              producerObs.level
+          | Some(producerObs) if producerObs.level > maxDepLevel.contents =>
+            maxDepLevel := producerObs.level
           | _ => ()
           }
         | _ => ()
@@ -148,10 +148,6 @@ let computeLevel = (observer: Observer.t): int => {
     }
   }
 }
-
-// ============================================================================
-// PHASE 3: SCHEDULER EXECUTION
-// ============================================================================
 
 // Iterative flush - execute pending observers with topological ordering
 let flush = (): unit => {
@@ -251,17 +247,20 @@ let notify = (signalId: int): unit => {
       // Flush if not already flushing
       if !flushing.contents {
         flushing := true
-        flush()
-        flushing := false
+        try {
+          flush()
+          flushing := false
+        } catch {
+        | exn => {
+            flushing := false
+            throw(exn)
+          }
+        }
       }
     }
   | None => ()
   }
 }
-
-// ============================================================================
-// PHASE 7: UTILITIES
-// ============================================================================
 
 // Run function without tracking dependencies
 let untrack = (fn: unit => 'a): 'a => {
