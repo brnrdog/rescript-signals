@@ -95,15 +95,24 @@ let computeLevel = (observer: Observer.t): int => {
   switch observer.kind {
   | #Effect => {
       // Effects run after all computeds
+      // Only look at computed observers, not other effects, to prevent level inflation
       let maxDepLevel = ref(0)
 
       observer.deps->Set.forEach(signalId => {
         switch signalObservers->Map.get(signalId) {
         | Some(obsSet) =>
           obsSet->Set.forEach(depObsId => {
-            switch observers->Map.get(depObsId) {
-            | Some(depObs) if depObs.level > maxDepLevel.contents => maxDepLevel := depObs.level
-            | _ => ()
+            // Exclude self and other effects from level calculation
+            if depObsId != observer.id {
+              switch observers->Map.get(depObsId) {
+              | Some(depObs) =>
+                switch depObs.kind {
+                | #Computed(_) if depObs.level > maxDepLevel.contents => maxDepLevel := depObs.level
+                | #Computed(_) => () // Computed with lower or equal level
+                | #Effect => () // Ignore effects to prevent level inflation
+                }
+              | None => ()
+              }
             }
           })
         | None => ()
