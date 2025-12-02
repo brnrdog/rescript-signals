@@ -19,7 +19,7 @@ let make = (initialValue: 'a, ~name: option<string>=?, ~equals: option<('a, 'a) 
     id,
     value: ref(initialValue),
     version: ref(0),
-    equals: equals->Option.getOr((a, b) => a == b),
+    equals: equals->Option.getOr((a, b) => a === b),
     name,
   }
 }
