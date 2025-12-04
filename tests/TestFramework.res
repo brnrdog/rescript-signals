@@ -124,33 +124,33 @@ let runSuites = (suites: array<testSuite>): unit => {
   let totalFailed = ref(0)
 
   suites->Array.forEach(suite => {
-    let beforePassed = totalPassed.contents
-    let beforeFailed = totalFailed.contents
-
-    suite.tests->Array.forEach(testCase => {
-      switch testCase.run() {
-      | Pass => totalPassed := totalPassed.contents + 1
-      | Fail(_) => totalFailed := totalFailed.contents + 1
-      }
-    })
-
-    let suitePassed = totalPassed.contents - beforePassed
-    let suiteFailed = totalFailed.contents - beforeFailed
-
     Console.log(`\n📦 ${suite.name}`)
     Console.log("-" ++ String.repeat("-", String.length(suite.name) + 3))
 
+    let suitePassed = ref(0)
+    let suiteFailed = ref(0)
+
     suite.tests->Array.forEach(testCase => {
       switch testCase.run() {
-      | Pass => Console.log(`  ✓ ${testCase.name}`)
+      | Pass => {
+          Console.log(`  ✓ ${testCase.name}`)
+          suitePassed := suitePassed.contents + 1
+          totalPassed := totalPassed.contents + 1
+        }
       | Fail(message) => {
           Console.log(`  ✗ ${testCase.name}`)
           Console.log(`    ${message}`)
+          suiteFailed := suiteFailed.contents + 1
+          totalFailed := totalFailed.contents + 1
         }
       }
     })
 
-    Console.log(`  ${Int.toString(suitePassed)} passed, ${Int.toString(suiteFailed)} failed`)
+    Console.log(
+      `  ${Int.toString(suitePassed.contents)} passed, ${Int.toString(
+          suiteFailed.contents,
+        )} failed`,
+    )
   })
 
   Console.log("\n" ++ String.repeat("=", 50))
