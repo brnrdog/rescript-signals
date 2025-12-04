@@ -47,6 +47,18 @@ let addDep = (observerId: int, signalId: int): unit => {
   }
 }
 
+module SignalObservers = {
+  let get = (signalId, fn) => {
+    switch signalObservers->Map.get(signalId) {
+    | Some(obsSet) => {
+        fn(obsSet)
+        ()
+      }
+    | None => ()
+    }
+  }
+}
+
 // Forward declaration for mutual recursion
 let rec autoDisposeComputed = (signalId: int): unit => {
   switch computedToObserver->Map.get(signalId) {
@@ -69,27 +81,10 @@ let rec autoDisposeComputed = (signalId: int): unit => {
 
 // Clear all dependencies for an observer
 and clearDeps = (observer: Observer.t): unit => {
-  observer.deps->Set.forEach(signalId => {
-    switch signalObservers->Map.get(signalId) {
-    | Some(obsSet) => {
-        obsSet->Set.delete(observer.id)->ignore
+  observer.deps->Set.forEach(signalId =>
+    signalId->SignalObservers.get(obsSet => obsSet->Set.delete(observer.id)->ignore)
+  )
 
-        // Auto-disposal: check if computed has no more subscribers
-        if obsSet->Set.size == 0 {
-          if retracking.contents {
-            // During retracking, defer disposal check until after retracking completes
-            orphanedSignals->Set.add(signalId)
-          } else {
-            // Not retracking, dispose immediately
-            autoDisposeComputed(signalId)
-          }
-        }
-      }
-    | None => ()
-    }
-  })
-
-  // Clear observer's dependency set
   Set.clear(observer.deps)
 }
 
@@ -234,29 +229,76 @@ let schedule = (observerId: int): unit => {
 }
 
 // Notify all observers that depend on a signal
-let notify = (signalId: int): unit => {
+let rec notify = (signalId: int): unit => {
   ensureSignalBucket(signalId)
 
-  switch signalObservers->Map.get(signalId) {
-  | Some(obsSet) => {
-      // Schedule all dependent observers
-      obsSet->Set.forEach(observerId => {
-        pending->Set.add(observerId)
-      })
-
-      // Flush if not already flushing
-      if !flushing.contents {
-        flushing := true
-        try {
-          flush()
-          flushing := false
-        } catch {
-        | exn => {
-            flushing := false
-            throw(exn)
+  signalObservers
+  ->Map.get(signalId)
+  ->Option.getOr(Set.make())
+  ->Set.forEach(observerId => {
+    switch observers->Map.get(observerId) {
+    | None => ()
+    | Some(observer) =>
+      switch observer.kind {
+      | #Effect => pending->Set.add(observerId)
+      | #Computed(backingSignalId) =>
+        switch observer.dirty {
+        | true => ()
+        | false => {
+            observer.dirty = true
+            notify(backingSignalId)
           }
         }
       }
+    }
+  })
+
+  if !flushing.contents && pending->Set.size > 0 {
+    flushing := true
+    try {
+      flush()
+      flushing := false
+    } catch {
+    | exn => {
+        flushing := false
+        throw(exn)
+      }
+    }
+  }
+}
+
+let ensureComputedFresh = (signalId: int): unit => {
+  switch computedToObserver->Map.get(signalId) {
+  | Some(observerId) =>
+    switch observers->Map.get(observerId) {
+    | Some(observer) =>
+      if observer.dirty {
+        retracking := true
+        clearDeps(observer)
+
+        let prev = currentObserverId.contents
+        currentObserverId := Some(observerId)
+
+        try {
+          observer.run()
+
+          // Mark as clean after recomputation:
+          observer.dirty = false
+          retracking := false
+        } catch {
+        | exn => {
+            currentObserverId := prev
+            retracking := false
+            throw(exn)
+          }
+        }
+
+        currentObserverId := prev
+
+        // Recompute level after re-tracking
+        observer.level = computeLevel(observer)
+      }
+    | None => ()
     }
   | None => ()
   }

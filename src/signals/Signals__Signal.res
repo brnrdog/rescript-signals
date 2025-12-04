@@ -25,6 +25,8 @@ let make = (initialValue: 'a, ~name: option<string>=?, ~equals: option<('a, 'a) 
 }
 
 let get = (signal: t<'a>): 'a => {
+  Scheduler.ensureComputedFresh(signal.id)
+
   switch Scheduler.currentObserverId.contents {
   | Some(observerId) => Scheduler.addDep(observerId, signal.id)
   | None => ()
@@ -34,6 +36,7 @@ let get = (signal: t<'a>): 'a => {
 }
 
 let peek = (signal: t<'a>): 'a => {
+  Scheduler.ensureComputedFresh(signal.id)
   signal.value.contents
 }
 
