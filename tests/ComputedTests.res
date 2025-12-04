@@ -55,7 +55,11 @@ let tests = suite(
       )
       let result1 = assertEqual(Signal.peek(description), "small", ~message="Should be 'small'")
       Signal.set(value, 15)
-      let result2 = assertEqual(Signal.peek(description), "large", ~message="Should update to 'large'")
+      let result2 = assertEqual(
+        Signal.peek(description),
+        "large",
+        ~message="Should update to 'large'",
+      )
       combineResults([result1, result2])
     }),
     test("computed with string concatenation", () => {
@@ -75,22 +79,47 @@ let tests = suite(
       let sum = Computed.make(() => Signal.get(numbers)->Array.reduce(0, (acc, n) => acc + n))
       assertEqual(Signal.peek(sum), 6, ~message="Sum should be 6")
     }),
-    test("computed recalculates on dependency changes", () => {
+    test("computed recalculates lazily when read", () => {
       let count = Signal.make(0)
       let computeCount = ref(0)
       let computed = Computed.make(() => {
         computeCount := computeCount.contents + 1
         Signal.get(count) * 2
       })
+      // First read triggers initial computation
       let _ = Signal.peek(computed)
-      let beforeUpdates = computeCount.contents
+      let afterFirstRead = computeCount.contents
+
+      // Changes to signal should mark computed dirty but NOT recompute yet (lazy)
       Signal.set(count, 1)
       Signal.set(count, 2)
       Signal.set(count, 3)
-      assertTrue(
-        computeCount.contents > beforeUpdates,
-        ~message="Computed should recalculate when dependencies change",
+
+      // Should still be the same (lazy - didn't recompute)
+      let result1 = assertEqual(
+        computeCount.contents,
+        afterFirstRead,
+        ~message="Computed should not eagerly recalculate (lazy evaluation)",
       )
+
+      Signal.set(count, 4)
+      Signal.set(count, 5)
+
+      // Should still be the same (lazy - didn't recompute)
+      let result2 = assertEqual(
+        computeCount.contents,
+        afterFirstRead,
+        ~message="Computed should not eagerly recalculate (lazy evaluation)",
+      )
+
+      // Reading again should trigger recomputation
+      let _ = Signal.peek(computed)
+      let result3 = assertTrue(
+        computeCount.contents > afterFirstRead,
+        ~message="Computed should recalculate when read after changes",
+      )
+
+      combineResults([result1, result2, result3])
     }),
     test("computed with nested object access", () => {
       let obj = Signal.make({"value": 42})

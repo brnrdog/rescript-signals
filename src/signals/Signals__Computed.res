@@ -30,6 +30,7 @@ let make = (compute: unit => 'a): Signal.t<'a> => {
 
   try {
     observer.run()
+    observer.dirty = false
     Scheduler.retracking := false
   } catch {
   | exn => {

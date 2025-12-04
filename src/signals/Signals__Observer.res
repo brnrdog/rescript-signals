@@ -6,6 +6,7 @@ type t = {
   run: unit => unit,
   mutable deps: Set.t<int>,
   mutable level: int,
+  mutable dirty: bool,
 }
 
 let make = (id: int, kind: kind, run: unit => unit): t => {
@@ -13,5 +14,6 @@ let make = (id: int, kind: kind, run: unit => unit): t => {
   kind,
   run,
   deps: Set.make(),
+  dirty: true,
   level: 0,
 }
