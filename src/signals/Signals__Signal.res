@@ -13,7 +13,7 @@ let make = (initialValue: 'a, ~name: option<string>=?, ~equals: option<('a, 'a) 
   'a,
 > => {
   let id = Signals__Id.make()
-  Scheduler.ensureSignalBucket(id)
+  Scheduler.ensureSignal(id)
 
   {
     id,
