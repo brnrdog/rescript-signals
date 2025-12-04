@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 1.1.0 (2025-12-04)
+
+* refactor(scheduler): extract utility modules ([080367f](https://github.com/brnrdog/rescript-signals/commit/080367f))
+* test: test framework improvements ([9bc7fe3](https://github.com/brnrdog/rescript-signals/commit/9bc7fe3))
+* fix: prevent infinite loops on recompute ([4835c6c](https://github.com/brnrdog/rescript-signals/commit/4835c6c))
+* feat: lazy computed evaluation ([a894edc](https://github.com/brnrdog/rescript-signals/commit/a894edc))
+* docs: update CONTRIBUTING ([d4a80b0](https://github.com/brnrdog/rescript-signals/commit/d4a80b0))
+
 ## <small>1.0.2 (2025-12-02)</small>
 
 * fix(scheduler): effect level inflation ([ece7af5](https://github.com/brnrdog/rescript-signals/commit/ece7af5))
