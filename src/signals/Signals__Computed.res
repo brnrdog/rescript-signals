@@ -13,7 +13,8 @@ let make = (compute: unit => 'a): Signal.t<'a> => {
   // Recompute function
   let recompute = () => {
     let newValue = compute()
-    Signal.set(backingSignal, newValue)
+
+    backingSignal.value := newValue
   }
 
   // Create observer
