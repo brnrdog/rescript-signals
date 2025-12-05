@@ -1,3 +1,4 @@
+@@warning("-44")
 open TestFramework
 open Signals
 
