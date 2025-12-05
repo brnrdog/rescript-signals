@@ -240,8 +240,10 @@ module ObserverExecution = {
   }
 }
 
+let anyPending = () => pending->Set.size > 0
+
 let flush = (): unit => {
-  while pending->Set.size > 0 {
+  while anyPending() {
     let arr = pending->Set.values->Core__Iterator.toArray
     Set.clear(pending)
 
@@ -279,7 +281,7 @@ let rec notify = (signalId: int): unit => {
     }
   })
 
-  if pending->Set.size > 0 {
+  if anyPending() {
     FlushGuard.withFlushing(flush)
   }
 }
@@ -304,6 +306,29 @@ let ensureComputedFresh = (signalId: int): unit => {
     | None => ()
     }
   | None => ()
+  }
+}
+
+let batch = fn => {
+  let wasFlushing = flushing.contents
+  flushing := true
+
+  try {
+    let result = fn()
+    if !wasFlushing {
+      flushing := false
+      if anyPending() {
+        flush()
+      }
+    }
+    result
+  } catch {
+  | exn => {
+      if !wasFlushing {
+        flushing := false
+      }
+      throw(exn)
+    }
   }
 }
 

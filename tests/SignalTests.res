@@ -77,5 +77,167 @@ let tests = suite(
       let version2 = signal.version.contents
       assertEqual(version1, version2, ~message="Version should not change for equal values")
     }),
+    test("batch prevents redundant effect runs", () => {
+      let a = Signal.make(0)
+      let b = Signal.make(0)
+      let c = Signal.make(0)
+      let runCount = ref(0)
+
+      let disposer = Effect.run(() => {
+        let _ = Signal.get(a) + Signal.get(b) + Signal.get(c)
+        runCount := runCount.contents + 1
+        None
+      })
+
+      let afterInitial = runCount.contents
+
+      Signal.batch(() => {
+        Signal.set(a, 1)
+        Signal.set(b, 2)
+        Signal.set(c, 3)
+      })
+
+      let result1 = assertEqual(
+        runCount.contents,
+        afterInitial + 1,
+        ~message="Effect should run only once with batch",
+      )
+
+      let result2 = assertEqual(
+        (a.value.contents, b.value.contents, c.value.contents),
+        (1, 2, 3),
+        ~message="Batched signal updates should run",
+      )
+
+      let result = combineResults([result1, result2])
+
+      disposer.dispose()
+      result
+    }),
+    test("batch works with nested batches", () => {
+      let signal = Signal.make(0)
+      let runCount = ref(0)
+
+      let disposer = Effect.run(() => {
+        let _ = Signal.get(signal)
+        runCount := runCount.contents + 1
+        None
+      })
+
+      let afterInitial = runCount.contents
+
+      Signal.batch(() => {
+        Signal.set(signal, 1)
+        Signal.batch(
+          () => {
+            Signal.set(signal, 2)
+            Signal.set(signal, 3)
+          },
+        )
+        Signal.set(signal, 4)
+      })
+
+      let result = assertEqual(
+        runCount.contents,
+        afterInitial + 1,
+        ~message="Nested batch should still run effect only once",
+      )
+
+      disposer.dispose()
+      result
+    }),
+    test("batch returns the function result", () => {
+      let result = Signal.batch(() => {
+        let x = 1 + 2
+        let y = x * 2
+        y + 10
+      })
+
+      assertEqual(result, 16, ~message="Batch should return function result")
+    }),
+    test("untrack prevents dependency tracking", () => {
+      let tracked = Signal.make(1)
+      let untracked = Signal.make(10)
+      let runCount = ref(0)
+
+      let disposer = Effect.run(() => {
+        let _ = Signal.get(tracked)
+        let _ = Signal.untrack(() => Signal.get(untracked))
+        runCount := runCount.contents + 1
+        None
+      })
+
+      let afterInitial = runCount.contents
+
+      // Changing untracked signal should not trigger effect
+      Signal.set(untracked, 20)
+
+      let result1 = assertEqual(
+        runCount.contents,
+        afterInitial,
+        ~message="Effect should not run when untracked signal changes",
+      )
+
+      // Changing tracked signal should trigger effect
+      Signal.set(tracked, 2)
+
+      let result2 = assertEqual(
+        runCount.contents,
+        afterInitial + 1,
+        ~message="Effect should run when tracked signal changes",
+      )
+
+      disposer.dispose()
+      combineResults([result1, result2])
+    }),
+    test("untrack can be nested", () => {
+      let a = Signal.make(1)
+      let b = Signal.make(2)
+      let c = Signal.make(3)
+      let runCount = ref(0)
+
+      let disposer = Effect.run(() => {
+        let _ = Signal.get(a)
+        let _ = Signal.untrack(
+          () => {
+            let _ = Signal.get(b)
+            Signal.untrack(() => Signal.get(c))
+          },
+        )
+        runCount := runCount.contents + 1
+        None
+      })
+
+      let afterInitial = runCount.contents
+
+      Signal.set(b, 20)
+      Signal.set(c, 30)
+
+      let result1 = assertEqual(
+        runCount.contents,
+        afterInitial,
+        ~message="Nested untrack should prevent tracking",
+      )
+
+      Signal.set(a, 10)
+
+      let result2 = assertEqual(
+        runCount.contents,
+        afterInitial + 1,
+        ~message="Only tracked signal should trigger effect",
+      )
+
+      disposer.dispose()
+      combineResults([result1, result2])
+    }),
+    test("untrack returns the function result", () => {
+      let signal = Signal.make(42)
+      let result = Signal.untrack(() => {
+        let value = Signal.get(signal)
+        value * 2
+      })
+
+      assertEqual(result, 84, ~message="Untrack should return function result")
+    }),
   ],
 )

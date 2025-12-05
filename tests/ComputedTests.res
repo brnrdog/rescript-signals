@@ -126,5 +126,33 @@ let tests = suite(
       let extracted = Computed.make(() => Signal.get(obj)["value"])
       assertEqual(Signal.peek(extracted), 42, ~message="Should extract nested value")
     }),
+    test("conditional reads return fresh data (auto-disposal fix)", () => {
+      let count = Signal.make(0)
+      let doubled = Computed.make(() => Signal.get(count) * 2)
+      let show = Signal.make(true)
+      let result = ref(0)
+
+      let disposer = Effect.run(() => {
+        if Signal.get(show) {
+          result := Signal.get(doubled)
+        }
+        None
+      })
+
+      let result1 = assertEqual(result.contents, 0, ~message="Initial result should be 0")
+
+      Signal.set(show, false)
+      Signal.set(count, 5)
+      Signal.set(show, true)
+
+      let result2 = assertEqual(
+        result.contents,
+        10,
+        ~message="Should get fresh computed value after conditional re-read",
+      )
+
+      disposer.dispose()
+      combineResults([result1, result2])
+    }),
   ],
 )

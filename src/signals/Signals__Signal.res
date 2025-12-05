@@ -12,7 +12,7 @@ type t<'a> = {
 let make = (initialValue: 'a, ~name: option<string>=?, ~equals: option<('a, 'a) => bool>=?): t<
   'a,
 > => {
-  let id = Signals__Id.make()
+  let id = Id.make()
   Scheduler.ensureSignal(id)
 
   {
@@ -55,3 +55,7 @@ let set = (signal: t<'a>, newValue: 'a): unit => {
 }
 
 let update = (signal: t<'a>, fn: 'a => 'a): unit => signal->set(fn(signal.value.contents))
+
+let batch = Scheduler.batch
+
+let untrack = Scheduler.untrack
