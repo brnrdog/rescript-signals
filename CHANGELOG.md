@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file. See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 1.2.0 (2025-12-05)
+
+* feat: introduce Signal.batch and Signal.untrack ([a8716ae](https://github.com/brnrdog/rescript-signals/commit/a8716ae))
+
 ## 1.1.0 (2025-12-04)
 
 * refactor(scheduler): extract utility modules ([080367f](https://github.com/brnrdog/rescript-signals/commit/080367f))
