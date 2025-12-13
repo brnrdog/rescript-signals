@@ -3,9 +3,9 @@ module Signal = Signals__Signal
 module Observer = Signals__Observer
 module Scheduler = Signals__Scheduler
 
-let make = (compute: unit => 'a): Signal.t<'a> => {
+let make = (compute: unit => 'a, ~name: option<string>=?): Signal.t<'a> => {
   // Create backing signal with magic initial value
-  let backingSignal = Signal.make((Obj.magic(): 'a))
+  let backingSignal = Signal.make((Obj.magic(): 'a), ~name?)
 
   // Create observer ID
   let observerId = Id.make()

@@ -4,7 +4,7 @@ module Scheduler = Signals__Scheduler
 
 type disposer = {dispose: unit => unit}
 
-let run = (fn: unit => option<unit => unit>): disposer => {
+let run = (fn: unit => option<unit => unit>, ~name: option<string>=?): disposer => {
   let observerId = Id.make()
   let cleanup: ref<option<unit => unit>> = ref(None)
 
@@ -21,7 +21,7 @@ let run = (fn: unit => option<unit => unit>): disposer => {
   }
 
   // Create observer
-  let observer = Observer.make(observerId, #Effect, runWithCleanup)
+  let observer = Observer.make(observerId, #Effect, runWithCleanup, ~name?)
 
   Scheduler.observers->Map.set(observerId, observer)
 
