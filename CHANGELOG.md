@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file. See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 1.3.0 (2025-12-13)
+
+* feat: add optional name argument for debugging ([9699a83](https://github.com/brnrdog/rescript-signals/commit/9699a83))
+* test: supress shadowing warning in test files ([ec74f3d](https://github.com/brnrdog/rescript-signals/commit/ec74f3d))
+
 ## 1.2.0 (2025-12-05)
 
 * feat: introduce Signal.batch and Signal.untrack ([a8716ae](https://github.com/brnrdog/rescript-signals/commit/a8716ae))
