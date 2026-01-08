@@ -32,9 +32,8 @@
   "keywords": [
     "rescript",
     "signals",
-    "reactive",
-    "functional",
-    "programming"
+    "reactivity",
+    "state",
   ],
   "author": "Bernardo Gurgel <brnrdog@hey.com>",
   "license": "SEE LICENSE IN LICENSE",
