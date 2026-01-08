@@ -33,7 +33,7 @@
     "rescript",
     "signals",
     "reactivity",
-    "state",
+    "state"
   ],
   "author": "Bernardo Gurgel <brnrdog@hey.com>",
   "license": "SEE LICENSE IN LICENSE",
