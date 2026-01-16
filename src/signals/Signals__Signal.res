@@ -25,6 +25,18 @@ let make = (initialValue: 'a, ~name: option<string>=?, ~equals: option<('a, 'a) 
   }
 }
 
+// Optimized signal creation for computed backing signals (no equals check needed)
+let makeForComputed = (initialValue: 'a, ~name: option<string>=?): t<'a> => {
+  let id = Id.make()
+  {
+    id,
+    value: initialValue,
+    equals: (_, _) => false, // Computeds always check freshness via dirty flag
+    name,
+    subs: Core.makeSubs(),
+  }
+}
+
 let get = (signal: t<'a>): 'a => {
   // Ensure computed is fresh (no-op for plain signals)
   Scheduler.ensureComputedFresh(signal.subs)
