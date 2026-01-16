@@ -10,19 +10,15 @@ let flushing: ref<bool> = ref(false)
 // Queue for iterative dirty marking
 let dirtyQueue: array<Core.subs> = []
 
-// Computed tracking: signal ID → observer (kept for ensureComputedFresh)
-let computedToObserver: Map.t<int, Core.observer> = Map.make()
-
-// Computed signal subs tracking: signal ID → subs (for dirty propagation)
+// Computed tracking: signal ID → subs (for dirty propagation, observer is on subs.computedObserver)
 let computedSubs: Map.t<int, Core.subs> = Map.make()
 
 // Efficient array clear
 let clearArray: array<'a> => unit = %raw(`function(arr) { arr.length = 0 }`)
 
-// Check if observer is already in pending array
-let isInPending = (observer: Core.observer): bool => {
-  Core.isPending(observer)
-}
+// Pre-allocated arrays for flush to avoid repeated allocations
+let pendingComputeds: array<Core.observer> = []
+let pendingEffects: array<Core.observer> = []
 
 // Add observer to pending if not already there
 let addToPending = (observer: Core.observer): unit => {
@@ -37,7 +33,7 @@ let trackDep = (observer: Core.observer, subs: Core.subs): unit => {
   // Check if already tracking this signal (walk dep list)
   let found = ref(false)
   let link = ref(observer.firstDep)
-  while Option.isSome(link.contents) && !found.contents {
+  while link.contents !== None && !found.contents {
     switch link.contents {
     | Some(l) =>
       if l.subs === subs {
@@ -68,13 +64,13 @@ let rec computeLevel = (observer: Core.observer): int => {
 
   // Walk dependency list
   let link = ref(observer.firstDep)
-  while Option.isSome(link.contents) {
+  while link.contents !== None {
     switch link.contents {
     | Some(l) =>
       // Check if the source is a computed
       // Walk the subs to find observers that are computeds
       let subLink = ref(l.subs.first)
-      while Option.isSome(subLink.contents) {
+      while subLink.contents !== None {
         switch subLink.contents {
         | Some(sl) =>
           switch sl.observer.kind {
@@ -123,25 +119,26 @@ and flush = (): unit => {
 
   try {
     while pending->Array.length > 0 {
-      // Separate computeds and effects
-      let computeds: array<Core.observer> = []
-      let effects: array<Core.observer> = []
+      // Clear reusable arrays efficiently
+      clearArray(pendingComputeds)
+      clearArray(pendingEffects)
 
+      // Separate computeds and effects into pre-allocated arrays
       pending->Array.forEach(observer => {
         switch observer.kind {
-        | #Computed(_) => computeds->Array.push(observer)->ignore
-        | #Effect => effects->Array.push(observer)->ignore
+        | #Computed(_) => pendingComputeds->Array.push(observer)->ignore
+        | #Effect => pendingEffects->Array.push(observer)->ignore
         }
       })
       clearArray(pending)
 
       // Sort by level
-      computeds->Array.sort(compareByLevel)->ignore
-      effects->Array.sort(compareByLevel)->ignore
+      pendingComputeds->Array.sort(compareByLevel)->ignore
+      pendingEffects->Array.sort(compareByLevel)->ignore
 
       // Execute computeds first, then effects
-      computeds->Array.forEach(retrack)
-      effects->Array.forEach(retrack)
+      pendingComputeds->Array.forEach(retrack)
+      pendingEffects->Array.forEach(retrack)
     }
 
     flushing := false
@@ -166,7 +163,7 @@ let notifySubs = (subs: Core.subs): unit => {
     | Some(s) =>
       // Walk subscriber list
       let link = ref(s.first)
-      while Option.isSome(link.contents) {
+      while link.contents !== None {
         switch link.contents {
         | Some(l) =>
           let observer = l.observer
@@ -196,9 +193,9 @@ let notifySubs = (subs: Core.subs): unit => {
   }
 }
 
-// Ensure a computed signal is fresh before reading
-let ensureComputedFresh = (signalId: int): unit => {
-  switch computedToObserver->Map.get(signalId) {
+// Ensure a computed signal is fresh before reading (uses subs.computedObserver directly)
+let ensureComputedFresh = (subs: Core.subs): unit => {
+  switch subs.computedObserver {
   | Some(observer) =>
     if Core.isDirty(observer) {
       Core.clearDeps(observer)
@@ -268,18 +265,18 @@ let untrack = (fn: unit => 'a): 'a => {
   }
 }
 
-// Register a computed's observer and subs for lookup
+// Register a computed's observer on subs and in Map for dirty propagation
 let registerComputed = (signalId: int, observer: Core.observer, subs: Core.subs): unit => {
-  computedToObserver->Map.set(signalId, observer)
+  subs.computedObserver = Some(observer)
   computedSubs->Map.set(signalId, subs)
 }
 
 // Unregister a computed (for disposal)
-let unregisterComputed = (signalId: int): unit => {
-  switch computedToObserver->Map.get(signalId) {
+let unregisterComputed = (signalId: int, subs: Core.subs): unit => {
+  switch subs.computedObserver {
   | Some(observer) =>
     Core.clearDeps(observer)
-    computedToObserver->Map.delete(signalId)->ignore
+    subs.computedObserver = None
     computedSubs->Map.delete(signalId)->ignore
   | None => ()
   }

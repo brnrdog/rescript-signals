@@ -28,6 +28,8 @@ and subs = {
   mutable first: option<link>,
   mutable last: option<link>,
   mutable version: int, // signal version for freshness check
+  // For computed signals: direct reference to backing observer (avoids Map lookup)
+  mutable computedObserver: option<observer>,
 }
 
 // Observer with dependency list
@@ -45,7 +47,7 @@ and observer = {
 }
 
 // Create empty subscriber list
-let makeSubs = (): subs => {first: None, last: None, version: 0}
+let makeSubs = (): subs => {first: None, last: None, version: 0, computedObserver: None}
 
 // Create observer
 let makeObserver = (id: int, kind: kind, run: unit => unit, ~name: option<string>=?): observer => {
@@ -131,7 +133,7 @@ let unlinkFromDeps = (observer: observer, link: link): unit => {
 // Clear all dependencies from observer (unlinks from all signals)
 let clearDeps = (observer: observer): unit => {
   let link = ref(observer.firstDep)
-  while Option.isSome(link.contents) {
+  while link.contents !== None {
     switch link.contents {
     | Some(l) =>
       let next = l.nextDep
