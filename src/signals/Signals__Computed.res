@@ -16,8 +16,8 @@ let make = (compute: unit => 'a, ~name: option<string>=?): Signal.t<'a> => {
     backingSignal.value = newValue
   }
 
-  // Create observer using Core types
-  let observer = Core.makeObserver(observerId, #Computed(backingSignal.id), recompute, ~name?)
+  // Create observer using Core types, with backingSubs for dirty propagation
+  let observer = Core.makeObserver(observerId, #Computed(backingSignal.id), recompute, ~name?, ~backingSubs=backingSignal.subs)
 
   // Initial computation under tracking
   Core.clearDeps(observer)

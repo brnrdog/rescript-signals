@@ -10,9 +10,6 @@ let flushing: ref<bool> = ref(false)
 // Queue for iterative dirty marking
 let dirtyQueue: array<Core.subs> = []
 
-// Computed tracking: signal ID → subs (for dirty propagation, observer is on subs.computedObserver)
-let computedSubs: Map.t<int, Core.subs> = Map.make()
-
 // Efficient array clear
 let clearArray: array<'a> => unit = %raw(`function(arr) { arr.length = 0 }`)
 
@@ -94,6 +91,9 @@ let rec computeLevel = (observer: Core.observer): int => {
 
 // Retrack an observer: clear deps, run, rebuild deps
 and retrack = (observer: Core.observer): unit => {
+  // Save old level to check if recomputation is needed
+  let oldLevel = observer.level
+
   Core.clearDeps(observer)
   Core.clearPending(observer)
 
@@ -110,7 +110,11 @@ and retrack = (observer: Core.observer): unit => {
     throw(exn)
   }
 
-  observer.level = computeLevel(observer)
+  // Only recompute level if this is a new observer (level 0) or we need accuracy
+  // For most cases, level stays stable after first computation
+  if oldLevel == 0 {
+    observer.level = computeLevel(observer)
+  }
 }
 
 // Flush pending observers
@@ -170,11 +174,11 @@ let notifySubs = (subs: Core.subs): unit => {
           switch observer.kind {
           | #Effect =>
             addToPending(observer)
-          | #Computed(backingSignalId) =>
+          | #Computed(_) =>
             if !Core.isDirty(observer) {
               Core.setDirty(observer)
-              // Propagate to the computed's subscribers
-              switch computedSubs->Map.get(backingSignalId) {
+              // Propagate to the computed's subscribers using direct reference
+              switch observer.backingSubs {
               | Some(backingSubs) => dirtyQueue->Array.push(backingSubs)->ignore
               | None => ()
               }
@@ -198,6 +202,8 @@ let ensureComputedFresh = (subs: Core.subs): unit => {
   switch subs.computedObserver {
   | Some(observer) =>
     if Core.isDirty(observer) {
+      let oldLevel = observer.level
+
       Core.clearDeps(observer)
 
       let prev = currentObserver.contents
@@ -213,7 +219,10 @@ let ensureComputedFresh = (subs: Core.subs): unit => {
         throw(exn)
       }
 
-      observer.level = computeLevel(observer)
+      // Only recompute level on first run
+      if oldLevel == 0 {
+        observer.level = computeLevel(observer)
+      }
     }
   | None => ()
   }
@@ -265,19 +274,17 @@ let untrack = (fn: unit => 'a): 'a => {
   }
 }
 
-// Register a computed's observer on subs and in Map for dirty propagation
-let registerComputed = (signalId: int, observer: Core.observer, subs: Core.subs): unit => {
+// Register a computed's observer on subs (no Map needed, backingSubs is on observer)
+let registerComputed = (_signalId: int, observer: Core.observer, subs: Core.subs): unit => {
   subs.computedObserver = Some(observer)
-  computedSubs->Map.set(signalId, subs)
 }
 
 // Unregister a computed (for disposal)
-let unregisterComputed = (signalId: int, subs: Core.subs): unit => {
+let unregisterComputed = (_signalId: int, subs: Core.subs): unit => {
   switch subs.computedObserver {
   | Some(observer) =>
     Core.clearDeps(observer)
     subs.computedObserver = None
-    computedSubs->Map.delete(signalId)->ignore
   | None => ()
   }
 }

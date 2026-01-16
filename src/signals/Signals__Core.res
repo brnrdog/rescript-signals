@@ -44,13 +44,15 @@ and observer = {
   mutable flags: int,
   mutable level: int,
   name: option<string>,
+  // For computed observers: direct reference to backing signal's subs (avoids Map lookup)
+  mutable backingSubs: option<subs>,
 }
 
 // Create empty subscriber list
 let makeSubs = (): subs => {first: None, last: None, version: 0, computedObserver: None}
 
 // Create observer
-let makeObserver = (id: int, kind: kind, run: unit => unit, ~name: option<string>=?): observer => {
+let makeObserver = (id: int, kind: kind, run: unit => unit, ~name: option<string>=?, ~backingSubs: option<subs>=?): observer => {
   id,
   kind,
   run,
@@ -59,6 +61,7 @@ let makeObserver = (id: int, kind: kind, run: unit => unit, ~name: option<string
   flags: flag_dirty, // start dirty
   level: 0,
   name,
+  backingSubs,
 }
 
 // Flag operations (using Int.Bitwise module)
