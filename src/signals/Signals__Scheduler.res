@@ -55,6 +55,25 @@ let compareByLevel = (a: Core.observer, b: Core.observer): float => {
   Int.toFloat(a.level - b.level)
 }
 
+// Check if array needs sorting (all same level = no sort needed)
+let needsSort = (arr: array<Core.observer>): bool => {
+  let len = arr->Array.length
+  if len <= 1 {
+    false
+  } else {
+    let firstLevel = (Array.getUnsafe(arr, 0)).level
+    let found = ref(false)
+    let i = ref(1)
+    while i.contents < len && !found.contents {
+      if (Array.getUnsafe(arr, i.contents)).level !== firstLevel {
+        found := true
+      }
+      i := i.contents + 1
+    }
+    found.contents
+  }
+}
+
 // Compute level based on dependencies
 let rec computeLevel = (observer: Core.observer): int => {
   let maxLevel = ref(0)
@@ -136,9 +155,13 @@ and flush = (): unit => {
       })
       clearArray(pending)
 
-      // Sort by level
-      pendingComputeds->Array.sort(compareByLevel)->ignore
-      pendingEffects->Array.sort(compareByLevel)->ignore
+      // Sort by level only if needed (skip when all same level)
+      if needsSort(pendingComputeds) {
+        pendingComputeds->Array.sort(compareByLevel)->ignore
+      }
+      if needsSort(pendingEffects) {
+        pendingEffects->Array.sort(compareByLevel)->ignore
+      }
 
       // Execute computeds first, then effects
       pendingComputeds->Array.forEach(retrack)
