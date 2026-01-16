@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## <small>1.3.1 (2026-01-16)</small>
+
+* fix: avoid stack overflow on deep computed chains ([9132ee0](https://github.com/brnrdog/rescript-signals/commit/9132ee0))
+* docs: update readme ([1a06e3e](https://github.com/brnrdog/rescript-signals/commit/1a06e3e))
+* chore: fix typo in package keywords ([a780672](https://github.com/brnrdog/rescript-signals/commit/a780672))
+* chore: update package keywords ([364306d](https://github.com/brnrdog/rescript-signals/commit/364306d))
+
 ## 1.3.0 (2025-12-13)
 
 * feat: add optional name argument for debugging ([9699a83](https://github.com/brnrdog/rescript-signals/commit/9699a83))
