@@ -15,10 +15,5 @@
     "in-source": true
   },
   "suffix": ".res.mjs",
-  "dependencies": [
-    "@rescript/core"
-  ],
-  "compiler-flags": [
-    "-open RescriptCore"
-  ]
+  "compiler-flags": ["-open Stdlib"]
 }
