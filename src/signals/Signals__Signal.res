@@ -26,7 +26,8 @@ let make = (initialValue: 'a, ~name: option<string>=?, ~equals: option<('a, 'a) 
 }
 
 let get = (signal: t<'a>): 'a => {
-  Scheduler.ensureComputedFresh(signal.id)
+  // Ensure computed is fresh (no-op for plain signals)
+  Scheduler.ensureComputedFresh(signal.subs)
 
   // Track dependency if we're inside an observer
   switch Scheduler.currentObserver.contents {
@@ -38,7 +39,7 @@ let get = (signal: t<'a>): 'a => {
 }
 
 let peek = (signal: t<'a>): 'a => {
-  Scheduler.ensureComputedFresh(signal.id)
+  Scheduler.ensureComputedFresh(signal.subs)
   signal.value
 }
 

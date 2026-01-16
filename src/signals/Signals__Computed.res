@@ -45,5 +45,5 @@ let make = (compute: unit => 'a, ~name: option<string>=?): Signal.t<'a> => {
 }
 
 let dispose = (signal: Signal.t<'a>): unit => {
-  Scheduler.unregisterComputed(signal.id)
+  Scheduler.unregisterComputed(signal.id, signal.subs)
 }
