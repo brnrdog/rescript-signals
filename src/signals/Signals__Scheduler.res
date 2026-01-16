@@ -113,16 +113,18 @@ module FlushGuard = {
   }
 }
 
+// Fast path addDep - called from Signal.get when we know observerId is current
 let addDep = (observerId: int, signalId: int): unit => {
-  SignalObservers.ensure(signalId)
-
-  switch (ExecutionContext.isCurrentObserver(observerId), observers->Map.get(observerId)) {
-  | (true, Some(observer)) =>
+  // Only do work if this is actually a new dependency
+  switch observers->Map.get(observerId) {
+  | Some(observer) =>
     if !(observer.deps->Set.has(signalId)) {
       observer.deps->Set.add(signalId)
+      // Ensure signal has observer set and add to it
+      SignalObservers.ensure(signalId)
       SignalObservers.add(signalId, observerId)
     }
-  | _ => ()
+  | None => ()
   }
 }
 
@@ -148,14 +150,11 @@ and autoDisposeComputed = (signalId: int): unit => {
 }
 
 module LevelCalculation = {
-  let maxLevel = (levels: array<int>): int => {
-    levels->Array.reduce(0, (max, level) => level > max ? level : max)
-  }
-
   let forEffect = (observer: Observer.t): int => {
     // Effects run after all computeds
     // Only look at computed observers, not other effects, to prevent level inflation
-    let computedLevels = []
+    // Use mutable ref instead of allocating array
+    let maxLevel = ref(0)
 
     observer.deps->Set.forEach(signalId => {
       SignalObservers.forEach(signalId, depObsId => {
@@ -163,7 +162,10 @@ module LevelCalculation = {
           switch observers->Map.get(depObsId) {
           | Some(depObs) =>
             switch depObs.kind {
-            | #Computed(_) => computedLevels->Array.push(depObs.level)->ignore
+            | #Computed(_) =>
+              if depObs.level > maxLevel.contents {
+                maxLevel := depObs.level
+              }
             | #Effect => () // Ignore effects to prevent level inflation
             }
           | None => ()
@@ -172,26 +174,30 @@ module LevelCalculation = {
       })
     })
 
-    maxLevel(computedLevels) + 1
+    maxLevel.contents + 1
   }
 
   let forComputed = (observer: Observer.t): int => {
     // Computeds run based on dependency depth
     // Track producer→consumer edges directly by checking if dependencies are computed signals
-    let producerLevels = []
+    // Use mutable ref instead of allocating array
+    let maxLevel = ref(0)
 
     observer.deps->Set.forEach(signalId => {
       switch computedToObserver->Map.get(signalId) {
       | Some(producerObsId) if producerObsId != observer.id =>
         switch observers->Map.get(producerObsId) {
-        | Some(producerObs) => producerLevels->Array.push(producerObs.level)->ignore
+        | Some(producerObs) =>
+          if producerObs.level > maxLevel.contents {
+            maxLevel := producerObs.level
+          }
         | None => ()
         }
       | _ => ()
       }
     })
 
-    maxLevel(producerLevels) + 1
+    maxLevel.contents + 1
   }
 }
 
@@ -203,31 +209,9 @@ let computeLevel = (observer: Observer.t): int => {
 }
 
 module ObserverExecution = {
-  let compareLevel = (a: int, b: int): float => {
-    switch (observers->Map.get(a), observers->Map.get(b)) {
-    | (Some(obsA), Some(obsB)) => {
-        // Get kind priority: Computed = 0, Effect = 1
-        let priorityA = switch obsA.kind {
-        | #Computed(_) => 0
-        | #Effect => 1
-        }
-        let priorityB = switch obsB.kind {
-        | #Computed(_) => 0
-        | #Effect => 1
-        }
-
-        // First sort by kind priority, then by level
-        let priorityDiff = priorityA - priorityB
-        if priorityDiff != 0 {
-          Int.toFloat(priorityDiff)
-        } else {
-          Int.toFloat(obsA.level - obsB.level)
-        }
-      }
-    | (Some(_), None) => -1.0
-    | (None, Some(_)) => 1.0
-    | (None, None) => 0.0
-    }
+  // Compare observers directly by level (no Map lookups needed)
+  let compareByLevel = (a: Observer.t, b: Observer.t): float => {
+    Int.toFloat(a.level - b.level)
   }
 
   let retrack = (observer: Observer.t): unit => {
@@ -245,19 +229,39 @@ module ObserverExecution = {
 
 let anyPending = () => pending->Set.size > 0
 
+// Pre-allocated arrays for flush to avoid repeated allocations
+let pendingComputeds: array<Observer.t> = []
+let pendingEffects: array<Observer.t> = []
+
+// Efficient array clear (sets length to 0, no allocation)
+let clearArray: array<'a> => unit = %raw(`function(arr) { arr.length = 0 }`)
+
 let flush = (): unit => {
   while anyPending() {
-    let arr = pending->Set.values->Core__Iterator.toArray
-    Set.clear(pending)
+    // Clear reusable arrays efficiently
+    clearArray(pendingComputeds)
+    clearArray(pendingEffects)
 
-    arr->Array.sort(ObserverExecution.compareLevel)->ignore
-
-    arr->Array.forEach(observerId => {
+    // Single pass: collect and separate observers (N lookups instead of N log N)
+    pending->Set.forEach(observerId => {
       switch observers->Map.get(observerId) {
-      | Some(observer) => ObserverExecution.retrack(observer)
+      | Some(observer) =>
+        switch observer.kind {
+        | #Computed(_) => pendingComputeds->Array.push(observer)->ignore
+        | #Effect => pendingEffects->Array.push(observer)->ignore
+        }
       | None => ()
       }
     })
+    Set.clear(pending)
+
+    // Sort by level only (no Map lookups in comparator)
+    pendingComputeds->Array.sort(ObserverExecution.compareByLevel)->ignore
+    pendingEffects->Array.sort(ObserverExecution.compareByLevel)->ignore
+
+    // Execute computeds first, then effects
+    pendingComputeds->Array.forEach(ObserverExecution.retrack)
+    pendingEffects->Array.forEach(ObserverExecution.retrack)
   }
 }
 
