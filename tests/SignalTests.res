@@ -50,10 +50,10 @@ let tests = suite(
     }),
     test("signal version increments on set", () => {
       let signal = Signal.make(0)
-      let initialVersion = signal.version.contents
+      let initialVersion = signal.subs.version
       Signal.set(signal, 1)
       assertTrue(
-        signal.version.contents > initialVersion,
+        signal.subs.version > initialVersion,
         ~message="Version should increment after set",
       )
     }),
@@ -73,9 +73,9 @@ let tests = suite(
     }),
     test("signal equality prevents unnecessary updates", () => {
       let signal = Signal.make(42)
-      let version1 = signal.version.contents
+      let version1 = signal.subs.version
       Signal.set(signal, 42) // Same value
-      let version2 = signal.version.contents
+      let version2 = signal.subs.version
       assertEqual(version1, version2, ~message="Version should not change for equal values")
     }),
     test("batch prevents redundant effect runs", () => {
@@ -105,7 +105,7 @@ let tests = suite(
       )
 
       let result2 = assertEqual(
-        (a.value.contents, b.value.contents, c.value.contents),
+        (a.value, b.value, c.value),
         (1, 2, 3),
         ~message="Batched signal updates should run",
       )
