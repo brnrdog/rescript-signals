@@ -16,6 +16,9 @@ let pending: Set.t<int> = Set.make()
 let flushing: ref<bool> = ref(false)
 let retracking: ref<bool> = ref(false)
 
+// Queue for iterative dirty marking (avoids stack overflow from recursion)
+let dirtyQueue: array<int> = []
+
 module SignalObservers = {
   let ensure = (signalId: int): unit => {
     switch signalObservers->Map.get(signalId) {
@@ -263,24 +266,35 @@ let schedule = (observerId: int): unit => {
   FlushGuard.withFlushing(flush)
 }
 
-let rec notify = (signalId: int): unit => {
-  SignalObservers.ensure(signalId)
+// Iterative notify - avoids stack overflow on deep computed chains
+let notify = (signalId: int): unit => {
+  // Seed the queue with the initial signal
+  dirtyQueue->Array.push(signalId)->ignore
 
-  SignalObservers.toArray(signalId)->Array.forEach(observerId => {
-    switch observers->Map.get(observerId) {
+  // Process all signals iteratively
+  while dirtyQueue->Array.length > 0 {
+    let currentSignalId = dirtyQueue->Array.pop
+    switch currentSignalId {
     | None => ()
-    | Some(observer) =>
-      switch observer.kind {
-      | #Effect => pending->Set.add(observerId)
-      | #Computed(backingSignalId) =>
-        if !observer.dirty {
-          observer.dirty = true
-          notify(backingSignalId)
+    | Some(sid) =>
+      SignalObservers.forEach(sid, observerId => {
+        switch observers->Map.get(observerId) {
+        | None => ()
+        | Some(observer) =>
+          switch observer.kind {
+          | #Effect => pending->Set.add(observerId)
+          | #Computed(backingSignalId) =>
+            if !observer.dirty {
+              observer.dirty = true
+              dirtyQueue->Array.push(backingSignalId)->ignore
+            }
+          }
         }
-      }
+      })
     }
-  })
+  }
 
+  // Trigger flush only once after all dirty marking is complete
   if anyPending() {
     FlushGuard.withFlushing(flush)
   }
