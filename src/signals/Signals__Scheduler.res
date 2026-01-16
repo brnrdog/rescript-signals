@@ -1,332 +1,236 @@
-module Observer = Signals__Observer
+module Core = Signals__Core
 
-// Observer registry: observer ID → Observer.t (mutable)
-let observers: Map.t<int, Observer.t> = Map.make()
+// Current execution context - direct observer reference (no Map lookup needed)
+let currentObserver: ref<option<Core.observer>> = ref(None)
 
-// Bidirectional index: signal ID → set of observer IDs (mutable)
-let signalObservers: Map.t<int, Set.t<int>> = Map.make()
-
-// Computed tracking: signal ID → observer ID (mutable)
-let computedToObserver: Map.t<int, int> = Map.make()
-
-// Current execution context (which observer is running)
-let currentObserverId: ref<option<int>> = ref(None)
-
-let pending: Set.t<int> = Set.make()
+// Pending observers to execute (direct references)
+let pending: array<Core.observer> = []
 let flushing: ref<bool> = ref(false)
-let retracking: ref<bool> = ref(false)
 
-// Queue for iterative dirty marking (avoids stack overflow from recursion)
-let dirtyQueue: array<int> = []
+// Queue for iterative dirty marking
+let dirtyQueue: array<Core.subs> = []
 
-module SignalObservers = {
-  let ensure = (signalId: int): unit => {
-    switch signalObservers->Map.get(signalId) {
-    | Some(_) => ()
-    | None => signalObservers->Map.set(signalId, Set.make())
-    }
-  }
+// Computed tracking: signal ID → observer (kept for ensureComputedFresh)
+let computedToObserver: Map.t<int, Core.observer> = Map.make()
 
-  let forEach = (signalId: int, fn: int => unit): unit => {
-    switch signalObservers->Map.get(signalId) {
-    | Some(obsSet) => obsSet->Set.forEach(fn)
-    | None => ()
-    }
-  }
+// Computed signal subs tracking: signal ID → subs (for dirty propagation)
+let computedSubs: Map.t<int, Core.subs> = Map.make()
 
-  let add = (signalId: int, observerId: int): unit => {
-    switch signalObservers->Map.get(signalId) {
-    | Some(obsSet) => obsSet->Set.add(observerId)
-    | None => ()
-    }
-  }
-
-  let remove = (signalId: int, observerId: int): unit => {
-    switch signalObservers->Map.get(signalId) {
-    | Some(obsSet) => obsSet->Set.delete(observerId)->ignore
-    | None => ()
-    }
-  }
-
-  let toArray = (signalId: int): array<int> => {
-    signalObservers
-    ->Map.get(signalId)
-    ->Option.getOr(Set.make())
-    ->Set.values
-    ->Core__Iterator.toArray
-  }
-}
-
-module ExecutionContext = {
-  let withContext = (observerId: int, fn: unit => 'a): 'a => {
-    let prev = currentObserverId.contents
-    currentObserverId := Some(observerId)
-    try {
-      let result = fn()
-      currentObserverId := prev
-      result
-    } catch {
-    | exn => {
-        currentObserverId := prev
-        throw(exn)
-      }
-    }
-  }
-
-  let withoutTracking = (fn: unit => 'a): 'a => {
-    let prev = currentObserverId.contents
-    currentObserverId := None
-    try {
-      let result = fn()
-      currentObserverId := prev
-      result
-    } catch {
-    | exn => {
-        currentObserverId := prev
-        throw(exn)
-      }
-    }
-  }
-
-  let isCurrentObserver = (observerId: int): bool => {
-    switch currentObserverId.contents {
-    | Some(currentId) => currentId == observerId
-    | None => false
-    }
-  }
-}
-
-module FlushGuard = {
-  let withFlushing = (fn: unit => unit): unit => {
-    if !flushing.contents {
-      flushing := true
-      try {
-        fn()
-        flushing := false
-      } catch {
-      | exn => {
-          flushing := false
-          throw(exn)
-        }
-      }
-    }
-  }
-}
-
-// Fast path addDep - called from Signal.get when we know observerId is current
-let addDep = (observerId: int, signalId: int): unit => {
-  // Only do work if this is actually a new dependency
-  switch observers->Map.get(observerId) {
-  | Some(observer) =>
-    if !(observer.deps->Set.has(signalId)) {
-      observer.deps->Set.add(signalId)
-      // Ensure signal has observer set and add to it
-      SignalObservers.ensure(signalId)
-      SignalObservers.add(signalId, observerId)
-    }
-  | None => ()
-  }
-}
-
-let rec clearDeps = (observer: Observer.t): unit => {
-  observer.deps->Set.forEach(signalId => SignalObservers.remove(signalId, observer.id))
-  Set.clear(observer.deps)
-}
-
-and autoDisposeComputed = (signalId: int): unit => {
-  switch computedToObserver->Map.get(signalId) {
-  | Some(observerId) => {
-      computedToObserver->Map.delete(signalId)->ignore
-      switch observers->Map.get(observerId) {
-      | Some(obs) => {
-          clearDeps(obs)
-          observers->Map.delete(observerId)->ignore
-        }
-      | None => ()
-      }
-    }
-  | None => ()
-  }
-}
-
-module LevelCalculation = {
-  let forEffect = (observer: Observer.t): int => {
-    // Effects run after all computeds
-    // Only look at computed observers, not other effects, to prevent level inflation
-    // Use mutable ref instead of allocating array
-    let maxLevel = ref(0)
-
-    observer.deps->Set.forEach(signalId => {
-      SignalObservers.forEach(signalId, depObsId => {
-        if depObsId != observer.id {
-          switch observers->Map.get(depObsId) {
-          | Some(depObs) =>
-            switch depObs.kind {
-            | #Computed(_) =>
-              if depObs.level > maxLevel.contents {
-                maxLevel := depObs.level
-              }
-            | #Effect => () // Ignore effects to prevent level inflation
-            }
-          | None => ()
-          }
-        }
-      })
-    })
-
-    maxLevel.contents + 1
-  }
-
-  let forComputed = (observer: Observer.t): int => {
-    // Computeds run based on dependency depth
-    // Track producer→consumer edges directly by checking if dependencies are computed signals
-    // Use mutable ref instead of allocating array
-    let maxLevel = ref(0)
-
-    observer.deps->Set.forEach(signalId => {
-      switch computedToObserver->Map.get(signalId) {
-      | Some(producerObsId) if producerObsId != observer.id =>
-        switch observers->Map.get(producerObsId) {
-        | Some(producerObs) =>
-          if producerObs.level > maxLevel.contents {
-            maxLevel := producerObs.level
-          }
-        | None => ()
-        }
-      | _ => ()
-      }
-    })
-
-    maxLevel.contents + 1
-  }
-}
-
-let computeLevel = (observer: Observer.t): int => {
-  switch observer.kind {
-  | #Effect => LevelCalculation.forEffect(observer)
-  | #Computed(_) => LevelCalculation.forComputed(observer)
-  }
-}
-
-module ObserverExecution = {
-  // Compare observers directly by level (no Map lookups needed)
-  let compareByLevel = (a: Observer.t, b: Observer.t): float => {
-    Int.toFloat(a.level - b.level)
-  }
-
-  let retrack = (observer: Observer.t): unit => {
-    retracking := true
-    clearDeps(observer)
-
-    ExecutionContext.withContext(observer.id, () => {
-      observer.run()
-      retracking := false
-    })
-
-    observer.level = computeLevel(observer)
-  }
-}
-
-let anyPending = () => pending->Set.size > 0
-
-// Pre-allocated arrays for flush to avoid repeated allocations
-let pendingComputeds: array<Observer.t> = []
-let pendingEffects: array<Observer.t> = []
-
-// Efficient array clear (sets length to 0, no allocation)
+// Efficient array clear
 let clearArray: array<'a> => unit = %raw(`function(arr) { arr.length = 0 }`)
 
-let flush = (): unit => {
-  while anyPending() {
-    // Clear reusable arrays efficiently
-    clearArray(pendingComputeds)
-    clearArray(pendingEffects)
+// Check if observer is already in pending array
+let isInPending = (observer: Core.observer): bool => {
+  Core.isPending(observer)
+}
 
-    // Single pass: collect and separate observers (N lookups instead of N log N)
-    pending->Set.forEach(observerId => {
-      switch observers->Map.get(observerId) {
-      | Some(observer) =>
-        switch observer.kind {
-        | #Computed(_) => pendingComputeds->Array.push(observer)->ignore
-        | #Effect => pendingEffects->Array.push(observer)->ignore
-        }
-      | None => ()
-      }
-    })
-    Set.clear(pending)
-
-    // Sort by level only (no Map lookups in comparator)
-    pendingComputeds->Array.sort(ObserverExecution.compareByLevel)->ignore
-    pendingEffects->Array.sort(ObserverExecution.compareByLevel)->ignore
-
-    // Execute computeds first, then effects
-    pendingComputeds->Array.forEach(ObserverExecution.retrack)
-    pendingEffects->Array.forEach(ObserverExecution.retrack)
+// Add observer to pending if not already there
+let addToPending = (observer: Core.observer): unit => {
+  if !Core.isPending(observer) {
+    Core.setPending(observer)
+    pending->Array.push(observer)->ignore
   }
 }
 
-let schedule = (observerId: int): unit => {
-  pending->Set.add(observerId)
-  FlushGuard.withFlushing(flush)
-}
-
-// Iterative notify - avoids stack overflow on deep computed chains
-let notify = (signalId: int): unit => {
-  // Seed the queue with the initial signal
-  dirtyQueue->Array.push(signalId)->ignore
-
-  // Process all signals iteratively
-  while dirtyQueue->Array.length > 0 {
-    let currentSignalId = dirtyQueue->Array.pop
-    switch currentSignalId {
+// Track a dependency: create Link between observer and signal's subs
+let trackDep = (observer: Core.observer, subs: Core.subs): unit => {
+  // Check if already tracking this signal (walk dep list)
+  let found = ref(false)
+  let link = ref(observer.firstDep)
+  while Option.isSome(link.contents) && !found.contents {
+    switch link.contents {
+    | Some(l) =>
+      if l.subs === subs {
+        found := true
+      } else {
+        link := l.nextDep
+      }
     | None => ()
-    | Some(sid) =>
-      SignalObservers.forEach(sid, observerId => {
-        switch observers->Map.get(observerId) {
-        | None => ()
-        | Some(observer) =>
-          switch observer.kind {
-          | #Effect => pending->Set.add(observerId)
-          | #Computed(backingSignalId) =>
-            if !observer.dirty {
-              observer.dirty = true
-              dirtyQueue->Array.push(backingSignalId)->ignore
-            }
-          }
-        }
-      })
     }
   }
 
-  // Trigger flush only once after all dirty marking is complete
-  if anyPending() {
-    FlushGuard.withFlushing(flush)
+  // Only add if not already tracked
+  if !found.contents {
+    let newLink = Core.makeLink(subs, observer)
+    Core.linkToDeps(observer, newLink)
+    Core.linkToSubs(subs, newLink)
   }
 }
 
+// Compare observers by level for sorting
+let compareByLevel = (a: Core.observer, b: Core.observer): float => {
+  Int.toFloat(a.level - b.level)
+}
+
+// Compute level based on dependencies
+let rec computeLevel = (observer: Core.observer): int => {
+  let maxLevel = ref(0)
+
+  // Walk dependency list
+  let link = ref(observer.firstDep)
+  while Option.isSome(link.contents) {
+    switch link.contents {
+    | Some(l) =>
+      // Check if the source is a computed
+      // Walk the subs to find observers that are computeds
+      let subLink = ref(l.subs.first)
+      while Option.isSome(subLink.contents) {
+        switch subLink.contents {
+        | Some(sl) =>
+          switch sl.observer.kind {
+          | #Computed(_) =>
+            if sl.observer.level > maxLevel.contents {
+              maxLevel := sl.observer.level
+            }
+          | #Effect => ()
+          }
+          subLink := sl.nextSub
+        | None => ()
+        }
+      }
+      link := l.nextDep
+    | None => ()
+    }
+  }
+
+  maxLevel.contents + 1
+}
+
+// Retrack an observer: clear deps, run, rebuild deps
+and retrack = (observer: Core.observer): unit => {
+  Core.clearDeps(observer)
+  Core.clearPending(observer)
+
+  let prev = currentObserver.contents
+  currentObserver := Some(observer)
+
+  try {
+    observer.run()
+    Core.clearDirty(observer)
+    currentObserver := prev
+  } catch {
+  | exn =>
+    currentObserver := prev
+    throw(exn)
+  }
+
+  observer.level = computeLevel(observer)
+}
+
+// Flush pending observers
+and flush = (): unit => {
+  flushing := true
+
+  try {
+    while pending->Array.length > 0 {
+      // Separate computeds and effects
+      let computeds: array<Core.observer> = []
+      let effects: array<Core.observer> = []
+
+      pending->Array.forEach(observer => {
+        switch observer.kind {
+        | #Computed(_) => computeds->Array.push(observer)->ignore
+        | #Effect => effects->Array.push(observer)->ignore
+        }
+      })
+      clearArray(pending)
+
+      // Sort by level
+      computeds->Array.sort(compareByLevel)->ignore
+      effects->Array.sort(compareByLevel)->ignore
+
+      // Execute computeds first, then effects
+      computeds->Array.forEach(retrack)
+      effects->Array.forEach(retrack)
+    }
+
+    flushing := false
+  } catch {
+  | exn =>
+    flushing := false
+    throw(exn)
+  }
+}
+
+// Notify all subscribers of a signal (traverse linked list)
+// Must be defined after flush since it calls flush
+let notifySubs = (subs: Core.subs): unit => {
+  // Seed the dirty queue
+  dirtyQueue->Array.push(subs)->ignore
+
+  // Process iteratively to avoid stack overflow
+  while dirtyQueue->Array.length > 0 {
+    let currentSubs = dirtyQueue->Array.pop
+    switch currentSubs {
+    | None => ()
+    | Some(s) =>
+      // Walk subscriber list
+      let link = ref(s.first)
+      while Option.isSome(link.contents) {
+        switch link.contents {
+        | Some(l) =>
+          let observer = l.observer
+          switch observer.kind {
+          | #Effect =>
+            addToPending(observer)
+          | #Computed(backingSignalId) =>
+            if !Core.isDirty(observer) {
+              Core.setDirty(observer)
+              // Propagate to the computed's subscribers
+              switch computedSubs->Map.get(backingSignalId) {
+              | Some(backingSubs) => dirtyQueue->Array.push(backingSubs)->ignore
+              | None => ()
+              }
+            }
+          }
+          link := l.nextSub
+        | None => ()
+        }
+      }
+    }
+  }
+
+  // Trigger flush
+  if pending->Array.length > 0 && !flushing.contents {
+    flush()
+  }
+}
+
+// Ensure a computed signal is fresh before reading
 let ensureComputedFresh = (signalId: int): unit => {
   switch computedToObserver->Map.get(signalId) {
-  | Some(observerId) =>
-    switch observers->Map.get(observerId) {
-    | Some(observer) =>
-      if observer.dirty {
-        retracking := true
-        clearDeps(observer)
+  | Some(observer) =>
+    if Core.isDirty(observer) {
+      Core.clearDeps(observer)
 
-        ExecutionContext.withContext(observerId, () => {
-          observer.run()
-          observer.dirty = false
-          retracking := false
-        })
+      let prev = currentObserver.contents
+      currentObserver := Some(observer)
 
-        observer.level = computeLevel(observer)
+      try {
+        observer.run()
+        Core.clearDirty(observer)
+        currentObserver := prev
+      } catch {
+      | exn =>
+        currentObserver := prev
+        throw(exn)
       }
-    | None => ()
+
+      observer.level = computeLevel(observer)
     }
   | None => ()
   }
 }
 
+// Schedule an observer for execution
+let schedule = (observer: Core.observer): unit => {
+  addToPending(observer)
+  if !flushing.contents {
+    flush()
+  }
+}
+
+// Batch multiple updates
 let batch = fn => {
   let wasFlushing = flushing.contents
   flushing := true
@@ -335,20 +239,48 @@ let batch = fn => {
     let result = fn()
     if !wasFlushing {
       flushing := false
-      if anyPending() {
+      if pending->Array.length > 0 {
         flush()
       }
     }
     result
   } catch {
-  | exn => {
-      if !wasFlushing {
-        flushing := false
-      }
-      throw(exn)
+  | exn =>
+    if !wasFlushing {
+      flushing := false
     }
+    throw(exn)
   }
 }
 
-let untrack = ExecutionContext.withoutTracking
-let ensureSignal = SignalObservers.ensure
+// Execute without tracking dependencies
+let untrack = (fn: unit => 'a): 'a => {
+  let prev = currentObserver.contents
+  currentObserver := None
+  try {
+    let result = fn()
+    currentObserver := prev
+    result
+  } catch {
+  | exn =>
+    currentObserver := prev
+    throw(exn)
+  }
+}
+
+// Register a computed's observer and subs for lookup
+let registerComputed = (signalId: int, observer: Core.observer, subs: Core.subs): unit => {
+  computedToObserver->Map.set(signalId, observer)
+  computedSubs->Map.set(signalId, subs)
+}
+
+// Unregister a computed (for disposal)
+let unregisterComputed = (signalId: int): unit => {
+  switch computedToObserver->Map.get(signalId) {
+  | Some(observer) =>
+    Core.clearDeps(observer)
+    computedToObserver->Map.delete(signalId)->ignore
+    computedSubs->Map.delete(signalId)->ignore
+  | None => ()
+  }
+}

@@ -1,5 +1,5 @@
 module Id = Signals__Id
-module Observer = Signals__Observer
+module Core = Signals__Core
 module Scheduler = Signals__Scheduler
 
 type disposer = {dispose: unit => unit}
@@ -20,48 +20,42 @@ let run = (fn: unit => option<unit => unit>, ~name: option<string>=?): disposer 
     cleanup := fn()
   }
 
-  // Create observer
-  let observer = Observer.make(observerId, #Effect, runWithCleanup, ~name?)
-
-  Scheduler.observers->Map.set(observerId, observer)
+  // Create observer using Core types
+  let observer = Core.makeObserver(observerId, #Effect, runWithCleanup, ~name?)
 
   // Initial run under tracking
-  Scheduler.retracking := true
-  Scheduler.clearDeps(observer)
+  Core.clearDeps(observer)
 
-  let prev = Scheduler.currentObserverId.contents
-  Scheduler.currentObserverId := Some(observerId)
+  let prev = Scheduler.currentObserver.contents
+  Scheduler.currentObserver := Some(observer)
 
   try {
     observer.run()
-    Scheduler.retracking := false
+    Core.clearDirty(observer)
+    Scheduler.currentObserver := prev
   } catch {
-  | exn => {
-      Scheduler.currentObserverId := prev
-      Scheduler.retracking := false
-      throw(exn)
-    }
+  | exn =>
+    Scheduler.currentObserver := prev
+    throw(exn)
   }
-
-  Scheduler.currentObserverId := prev
 
   // Compute level
   observer.level = Scheduler.computeLevel(observer)
 
-  // Return disposer
-  let dispose = () => {
-    switch Scheduler.observers->Map.get(observerId) {
-    | Some(obs) => {
-        // Run final cleanup
-        switch cleanup.contents {
-        | Some(cleanupFn) => cleanupFn()
-        | None => ()
-        }
+  // Return disposer - stores observer reference directly (no Map lookup needed)
+  let disposed = ref(false)
 
-        Scheduler.clearDeps(obs)
-        Scheduler.observers->Map.delete(observerId)->ignore
+  let dispose = () => {
+    if !disposed.contents {
+      disposed := true
+
+      // Run final cleanup
+      switch cleanup.contents {
+      | Some(cleanupFn) => cleanupFn()
+      | None => ()
       }
-    | None => ()
+
+      Core.clearDeps(observer)
     }
   }
 
