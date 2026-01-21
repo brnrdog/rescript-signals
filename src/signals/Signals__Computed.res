@@ -4,36 +4,42 @@ module Core = Signals__Core
 module Scheduler = Signals__Scheduler
 
 let make = (compute: unit => 'a, ~name: option<string>=?): Signal.t<'a> => {
-  // Create backing signal with magic initial value (optimized path)
-  let backingSignal = Signal.makeForComputed((Obj.magic(): 'a), ~name?)
+  let id = Id.make()
 
-  // Create observer ID
-  let observerId = Id.make()
+  // Create a mutable ref to hold the signal so the compute function can update it
+  // Using Obj.magic to avoid Option wrapper overhead
+  let signalRef: ref<Signal.t<'a>> = ref(Obj.magic())
 
-  // Recompute function - updates backing signal's value directly
+  // Recompute function - updates the signal's value directly
   let recompute = () => {
-    let newValue = compute()
-    backingSignal.value = newValue
+    signalRef.contents.value = compute()
   }
 
-  // Create observer using Core types, with backingSubs for dirty propagation
-  let observer = Core.makeObserver(observerId, #Computed(backingSignal.id), recompute, ~name?, ~backingSubs=backingSignal.subs)
+  // Create combined subs (this IS the observer for the computed)
+  let subs = Core.makeComputedSubs(recompute)
 
-  // Initial computation under tracking (no clearDeps needed - observer is fresh)
-  let prev = Scheduler.currentObserver.contents
-  Scheduler.currentObserver := Some(observer)
-  observer.run()
-  Core.clearDirty(observer)
-  Scheduler.currentObserver := prev
+  // Initial computation under tracking to establish dependencies
+  let prev = Scheduler.currentComputedSubs.contents
+  Scheduler.currentComputedSubs := Some(subs)
+  let initialValue = compute()
+  Scheduler.currentComputedSubs := prev
 
-  // Level will be computed lazily on first retrack (starts at 0)
+  // Create the signal with the initial value
+  let signal: Signal.t<'a> = {
+    id,
+    value: initialValue,
+    equals: (_, _) => false, // Computeds always check freshness via dirty flag
+    name,
+    subs,
+  }
 
-  // Register for lookup by signal ID (needed for ensureComputedFresh and dirty propagation)
-  Scheduler.registerComputed(backingSignal.id, observer, backingSignal.subs)
+  // Set the ref so recompute can access the signal
+  signalRef := signal
+  Core.clearSubsDirty(subs)
 
-  backingSignal
+  signal
 }
 
 let dispose = (signal: Signal.t<'a>): unit => {
-  Scheduler.unregisterComputed(signal.id, signal.subs)
+  Core.clearSubsDeps(signal.subs)
 }
