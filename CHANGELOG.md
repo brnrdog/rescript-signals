@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## <small>1.3.2 (2026-01-21)</small>
+
+* chore: add benchmark script ([cfc2a7c](https://github.com/brnrdog/rescript-signals/commit/cfc2a7c))
+* perf: a few performance updates ([41b2f27](https://github.com/brnrdog/rescript-signals/commit/41b2f27))
+* perf: eliminate Map lookups and level recompute ([2bb0a5a](https://github.com/brnrdog/rescript-signals/commit/2bb0a5a))
+* perf: eliminate map lookups on signal read ([b3ad10f](https://github.com/brnrdog/rescript-signals/commit/b3ad10f))
+* perf: optimize computed creation path ([3d84e36](https://github.com/brnrdog/rescript-signals/commit/3d84e36))
+* perf: replace observer tracking with linked lists ([bc80675](https://github.com/brnrdog/rescript-signals/commit/bc80675))
+* perf: skip sorting when observers at same level ([1a406d3](https://github.com/brnrdog/rescript-signals/commit/1a406d3))
+* fix: remove @rescript/core as dep ([008e5fe](https://github.com/brnrdog/rescript-signals/commit/008e5fe))
+
 ## <small>1.3.1 (2026-01-16)</small>
 
 * fix: avoid stack overflow on deep computed chains ([9132ee0](https://github.com/brnrdog/rescript-signals/commit/9132ee0))
