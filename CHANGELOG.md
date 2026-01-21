@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file. See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## <small>1.3.3 (2026-01-21)</small>
+
+* perf: unify computed observer and subs into single structure ([f5d0ad1](https://github.com/brnrdog/rescript-signals/commit/f5d0ad1))
+
 ## <small>1.3.2 (2026-01-21)</small>
 
 * chore: add benchmark script ([cfc2a7c](https://github.com/brnrdog/rescript-signals/commit/cfc2a7c))
