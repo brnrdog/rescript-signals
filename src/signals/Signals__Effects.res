@@ -23,9 +23,7 @@ let run = (fn: unit => option<unit => unit>, ~name: option<string>=?): disposer 
   // Create observer using Core types
   let observer = Core.makeObserver(observerId, #Effect, runWithCleanup, ~name?)
 
-  // Initial run under tracking
-  Core.clearDeps(observer)
-
+  // Initial run under tracking (no need to clearDeps - observer is fresh)
   let prev = Scheduler.currentObserver.contents
   Scheduler.currentObserver := Some(observer)
 

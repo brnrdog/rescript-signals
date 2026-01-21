@@ -37,15 +37,13 @@ let makeForComputed = (initialValue: 'a, ~name: option<string>=?): t<'a> => {
   }
 }
 
+// Optimized get - inlined hot path checks
 let get = (signal: t<'a>): 'a => {
-  // Ensure computed is fresh (no-op for plain signals)
+  // Ensure computed is fresh
   Scheduler.ensureComputedFresh(signal.subs)
 
-  // Track dependency if we're inside an observer
-  switch Scheduler.currentObserver.contents {
-  | Some(observer) => Scheduler.trackDep(observer, signal.subs)
-  | None => ()
-  }
+  // Track dependency if we're inside a computed or effect
+  Scheduler.trackDep(signal.subs)
 
   signal.value
 }
