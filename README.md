@@ -29,7 +29,6 @@ Add to your `rescript.json`:
 - **Batched Updates**: Group multiple updates to prevent redundant computations
 - **Untracked Reads**: Access signal values without creating dependencies
 - **Fine-grained Updates**: Only affected computations re-run, nothing more
-- **Level-based Scheduling**: Guarantees correct execution order for complex dependency graphs
 - **Type-safe**: Full ReScript type safety with zero runtime overhead
 - **Debuggable**: Optional naming for signals, computed values, and effects
 
