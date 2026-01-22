@@ -1,5 +1,8 @@
 // Simple benchmark for rescript-signals
 import { Signal, Computed, Effect } from './src/Signals.res.mjs';
+import { writeFileSync, mkdirSync, existsSync } from 'fs';
+
+const results = [];
 
 function benchmark(name, fn, iterations = 10000) {
   // Warmup
@@ -12,7 +15,18 @@ function benchmark(name, fn, iterations = 10000) {
   const end = performance.now();
   const total = end - start;
   const perOp = total / iterations;
+  const opsPerSec = 1000 / perOp;
+
   console.log(`${name}: ${total.toFixed(2)}ms total, ${perOp.toFixed(4)}ms/op`);
+
+  results.push({
+    name,
+    iterations,
+    totalMs: Number(total.toFixed(2)),
+    msPerOp: Number(perOp.toFixed(4)),
+    opsPerSec: Math.round(opsPerSec),
+  });
+
   return total;
 }
 
@@ -135,3 +149,21 @@ console.log('\n--- Effects ---');
 }
 
 console.log('\n=== Benchmark Complete ===\n');
+
+// Save results to file
+const resultsDir = './benchmark-results';
+if (!existsSync(resultsDir)) {
+  mkdirSync(resultsDir);
+}
+
+const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+const filename = `${resultsDir}/benchmark-${timestamp}.json`;
+
+const output = {
+  timestamp: new Date().toISOString(),
+  nodeVersion: process.version,
+  results,
+};
+
+writeFileSync(filename, JSON.stringify(output, null, 2));
+console.log(`Results saved to ${filename}`);

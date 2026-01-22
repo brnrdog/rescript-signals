@@ -2,6 +2,7 @@
 /node_modules/
 /lib/
 /dist/
+/benchmark-results/
 .bsb.lock
 .merlin
 *.res.mjs
