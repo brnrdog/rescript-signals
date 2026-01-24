@@ -7,7 +7,8 @@
     },
     {
       "dir": "tests",
-      "subdirs": true
+      "subdirs": true,
+      "type": "dev"
     }
   ],
   "package-specs": {
@@ -15,5 +16,6 @@
     "in-source": true
   },
   "suffix": ".res.mjs",
-  "compiler-flags": ["-open Stdlib"]
+  "compiler-flags": ["-open Stdlib"],
+  "dev-dependencies": ["zekr", "@rescript/core"]
 }

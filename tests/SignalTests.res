@@ -1,5 +1,5 @@
 @@warning("-44")
-open TestFramework
+open Zekr
 open Signals
 
 let tests = suite(

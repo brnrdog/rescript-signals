@@ -44,12 +44,14 @@
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^20.0.0",
+    "@rescript/core": "^1.6.1",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/github": "^12.0.2",
     "@semantic-release/npm": "^13.1.2",
     "husky": "^9.1.7",
     "rescript": "^12.0.0",
-    "semantic-release": "^25.0.2"
+    "semantic-release": "^25.0.2",
+    "zekr": "^1.1.0"
   }
 }
