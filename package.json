@@ -52,6 +52,6 @@
     "husky": "^9.1.7",
     "rescript": "^12.0.0",
     "semantic-release": "^25.0.2",
-    "zekr": "^1.1.0"
+    "zekr": "^1.2.0"
   }
 }
