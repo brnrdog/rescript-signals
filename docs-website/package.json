@@ -1,0 +1,24 @@
+{
+  "name": "rescript-signals-docs",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "rescript -w & vite",
+    "build": "rescript && vite build",
+    "preview": "vite preview",
+    "res:build": "rescript",
+    "res:watch": "rescript -w",
+    "res:clean": "rescript clean"
+  },
+  "dependencies": {
+    "@rescript/core": "^1.6.1",
+    "rescript-signals": "^1.3.3",
+    "xote": "^4.11.0",
+    "basefn": "^1.3.0"
+  },
+  "devDependencies": {
+    "rescript": "^12.0.0",
+    "vite": "^7.1.12"
+  }
+}
