@@ -2,13 +2,17 @@ open Xote
 open Xote.ReactiveProp
 open Basefn
 
+let version = "1.3.3"
+
 @jsx.component
 let make = () => {
+  let location = Router.location()
+  let isHomepage = Computed.make(() => Signal.get(location).pathname == "/")
+
   let sections: array<sidebarNavSection> = [
     {
       title: Some("Getting Started"),
       items: [
-        {label: "Home", icon: None, active: false, url: "/"},
         {label: "Installation", icon: None, active: false, url: "/getting-started"},
       ],
     },
@@ -22,35 +26,69 @@ let make = () => {
     },
     {
       title: Some("Resources"),
-      items: [{label: "Examples", icon: None, active: false, url: "/examples"}],
+      items: [
+        {label: "Examples", icon: None, active: false, url: "/examples"},
+        {label: "Release Notes", icon: None, active: false, url: "/release-notes"},
+      ],
     },
   ]
 
-  let logo = <Typography text={static("ReScript Signals")} variant={H4} />
-
-  let footer =
-    <a href="https://github.com/brnrdog/rescript-signals" target="_blank">
-      <Typography text={static("GitHub")} variant={Small} />
+  let logo =
+    <a href="/" style="text-decoration: none; color: inherit;">
+      <Typography text={static("ReScript Signals")} variant={H4} />
     </a>
 
-  let sidebar = <Sidebar logo sections footer />
+  let sidebar = <Sidebar logo sections />
 
-  let topbar =
-    <Topbar
-      leftContent={<Typography text={static("Documentation")} variant={H5} />}
-      rightContent={<ThemeToggle />}
-    />
+  let topbarLeft =
+    <a href="/" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem;">
+      <Typography text={static("ReScript Signals")} variant={H5} />
+      <Badge label={Signal.make("v" ++ version)} variant={Secondary} />
+    </a>
 
-  <AppLayout sidebar topbar>
-    <div style="padding: 2rem; max-width: 900px;">
-      {Router.routes([
-        {pattern: "/", render: _ => <Pages.Home />},
-        {pattern: "/getting-started", render: _ => <Pages.GettingStarted />},
-        {pattern: "/api/signal", render: _ => <Pages.ApiSignal />},
-        {pattern: "/api/computed", render: _ => <Pages.ApiComputed />},
-        {pattern: "/api/effect", render: _ => <Pages.ApiEffect />},
-        {pattern: "/examples", render: _ => <Pages.Examples />},
-      ])}
+  let topbarRight =
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <a
+        href="https://github.com/brnrdog/rescript-signals"
+        target="_blank"
+        style="color: inherit; display: flex; align-items: center;">
+        <Icon name={GitHub} size={Md} />
+      </a>
+      <ThemeToggle />
     </div>
-  </AppLayout>
+
+  let topbar = <Topbar leftContent={topbarLeft} rightContent={topbarRight} />
+
+  let routes =
+    Router.routes([
+      {pattern: "/", render: _ => <Pages.Home />},
+      {pattern: "/getting-started", render: _ => <Pages.GettingStarted />},
+      {pattern: "/api/signal", render: _ => <Pages.ApiSignal />},
+      {pattern: "/api/computed", render: _ => <Pages.ApiComputed />},
+      {pattern: "/api/effect", render: _ => <Pages.ApiEffect />},
+      {pattern: "/examples", render: _ => <Pages.Examples />},
+      {pattern: "/release-notes", render: _ => <Pages.ReleaseNotes />},
+    ])
+
+  // Render different layouts based on whether we're on the homepage
+  Component.signalFragment(
+    Computed.make(() => {
+      if Signal.get(isHomepage) {
+        [
+          <div style="min-height: 100vh; display: flex; flex-direction: column;">
+            {topbar}
+            <main style="flex: 1; padding: 2rem; max-width: 1200px; margin: 0 auto; width: 100%;">
+              {routes}
+            </main>
+          </div>,
+        ]
+      } else {
+        [
+          <AppLayout sidebar topbar>
+            <div style="padding: 2rem; max-width: 900px;"> {routes} </div>
+          </AppLayout>,
+        ]
+      }
+    }),
+  )
 }
