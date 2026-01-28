@@ -1,0 +1,86 @@
+/* Global styles for docs-website */
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+/* Remove gaps in layout */
+.basefn-app-layout {
+  gap: 0 !important;
+}
+
+.basefn-sidebar {
+  border-right: 1px solid var(--basefn-color-border);
+}
+
+.basefn-topbar {
+  border-bottom: 1px solid var(--basefn-color-border);
+}
+
+/* Improve card spacing */
+.basefn-card {
+  margin-bottom: 1rem;
+}
+
+.basefn-card:last-child {
+  margin-bottom: 0;
+}
+
+/* Code block improvements */
+.code-block {
+  margin: 0.75rem 0 !important;
+}
+
+.code-block code {
+  white-space: pre;
+  display: block;
+}
+
+/* Typography improvements */
+h1, h2, h3, h4, h5, h6 {
+  margin-top: 0;
+}
+
+/* Separator spacing */
+.basefn-separator {
+  margin: 1.5rem 0;
+}
+
+/* Grid improvements */
+.basefn-grid {
+  margin-bottom: 1rem;
+}
+
+/* Link styles */
+a {
+  transition: opacity 0.2s;
+}
+
+a:hover {
+  opacity: 0.8;
+}
+
+/* Sidebar nav improvements */
+.basefn-sidebar-nav-item a {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  width: 100%;
+}
+
+/* Badge in topbar */
+.basefn-badge {
+  font-size: 0.75rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .basefn-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
