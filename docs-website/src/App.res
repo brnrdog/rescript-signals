@@ -48,6 +48,9 @@ let make = () => {
 
   let topbarRight =
     <div style="display: flex; align-items: center; gap: 1rem;">
+      <div style="width: 200px;">
+        <Search />
+      </div>
       <a
         href="https://github.com/brnrdog/rescript-signals"
         target="_blank"
