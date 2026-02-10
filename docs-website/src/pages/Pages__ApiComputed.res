@@ -5,6 +5,7 @@ open Basefn
 @jsx.component
 let make = () => {
   <div>
+    <div>
     <Typography text={static("Computed")} variant={H1} />
     <Typography
       text={static("Derived values that automatically update when their dependencies change.")}
@@ -109,5 +110,7 @@ Computed.dispose(computed)`}
         />
       </Card>
     </Grid>
+    </div>
+    <EditOnGitHub pageName="Pages__ApiComputed" />
   </div>
 }

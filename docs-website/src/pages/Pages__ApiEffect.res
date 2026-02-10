@@ -5,6 +5,7 @@ open Basefn
 @jsx.component
 let make = () => {
   <div>
+    <div>
     <Typography text={static("Effect")} variant={H1} />
     <Typography
       text={static("Side effects that automatically re-run when their dependencies change.")}
@@ -146,5 +147,7 @@ Effect.run(() => {
         />
       </Card>
     </Grid>
+    </div>
+    <EditOnGitHub pageName="Pages__ApiEffect" />
   </div>
 }

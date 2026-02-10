@@ -5,6 +5,7 @@ open Basefn
 @jsx.component
 let make = () => {
   <div>
+    <div>
     <Typography text={static("Getting Started")} variant={H1} />
     <Typography
       text={static("Learn how to install and use rescript-signals in your project.")}
@@ -96,5 +97,7 @@ Effect.run(() => {
         />
       </Card>
     </Grid>
+    </div>
+    <EditOnGitHub pageName="Pages__GettingStarted" />
   </div>
 }

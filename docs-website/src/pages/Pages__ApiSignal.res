@@ -5,6 +5,7 @@ open Basefn
 @jsx.component
 let make = () => {
   <div>
+    <div>
     <Typography text={static("Signal")} variant={H1} />
     <Typography
       text={static("The core reactive primitive for holding mutable state.")}
@@ -111,5 +112,7 @@ let computed = Computed.make(() => {
 })`}
       />
     </Card>
+    </div>
+    <EditOnGitHub pageName="Pages__ApiSignal" />
   </div>
 }

@@ -170,6 +170,7 @@ module DerivedStateExample = {
 @jsx.component
 let make = () => {
   <div>
+    <div>
     <Typography text={static("Examples")} variant={H1} />
     <Typography
       text={static("Interactive examples demonstrating rescript-signals patterns.")}
@@ -188,5 +189,7 @@ let make = () => {
         "These examples are built with xote and basefn. Check out the source code in the docs-website repository to see the full implementation.",
       )}
     />
+    </div>
+    <EditOnGitHub pageName="Pages__Examples" />
   </div>
 }
