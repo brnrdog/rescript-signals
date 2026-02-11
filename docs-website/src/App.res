@@ -102,6 +102,7 @@ let make = () => {
               {routes}
               <PageNavigation />
             </div>
+            <ScrollToTop />
           </AppLayout>,
         ]
       }
