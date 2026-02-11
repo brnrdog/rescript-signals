@@ -98,6 +98,7 @@ let make = () => {
         [
           <AppLayout sidebar topbar>
             <div style="padding: 2rem; max-width: 900px;">
+              <Breadcrumbs />
               {routes}
               <PageNavigation />
             </div>
