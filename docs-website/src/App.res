@@ -97,7 +97,10 @@ let make = () => {
         let sidebar = <Sidebar logo sections />
         [
           <AppLayout sidebar topbar>
-            <div style="padding: 2rem; max-width: 900px;"> {routes} </div>
+            <div style="padding: 2rem; max-width: 900px;">
+              {routes}
+              <PageNavigation />
+            </div>
           </AppLayout>,
         ]
       }
