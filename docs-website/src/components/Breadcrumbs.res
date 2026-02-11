@@ -46,9 +46,9 @@ let make = () => {
                   switch crumb.url {
                   | Some(url) =>
                     <span>
-                      <a href={url} style="color: var(--basefn-color-muted); text-decoration: none;">
+                      <Router.Link to={url} style="color: var(--basefn-color-muted); text-decoration: none;">
                         {crumb.label->Component.text}
-                      </a>
+                      </Router.Link>
                       {separator}
                     </span>
                   | None =>
