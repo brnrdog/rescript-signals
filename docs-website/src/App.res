@@ -4,41 +4,48 @@ open Basefn
 
 let version = "1.3.3"
 
+// Helper to check if a URL matches the current path
+let isActive = (url: string, pathname: string) => {
+  url == pathname
+}
+
 @jsx.component
 let make = () => {
   let location = Router.location()
   let isHomepage = Computed.make(() => Signal.get(location).pathname == "/")
+  let currentPath = Computed.make(() => Signal.get(location).pathname)
 
-  let sections: array<sidebarNavSection> = [
+  // Create reactive sections that update based on current path
+  let makeSections = (pathname: string): array<sidebarNavSection> => [
     {
       title: Some("Getting Started"),
       items: [
-        {label: "Installation", icon: None, active: false, url: "/getting-started"},
+        {label: "Installation", icon: None, active: isActive("/getting-started", pathname), url: "/getting-started"},
       ],
     },
     {
       title: Some("API Reference"),
       items: [
-        {label: "Signal", icon: None, active: false, url: "/api/signal"},
-        {label: "Computed", icon: None, active: false, url: "/api/computed"},
-        {label: "Effect", icon: None, active: false, url: "/api/effect"},
+        {label: "Signal", icon: None, active: isActive("/api/signal", pathname), url: "/api/signal"},
+        {label: "Computed", icon: None, active: isActive("/api/computed", pathname), url: "/api/computed"},
+        {label: "Effect", icon: None, active: isActive("/api/effect", pathname), url: "/api/effect"},
       ],
     },
     {
       title: Some("Resources"),
       items: [
-        {label: "Examples", icon: None, active: false, url: "/examples"},
-        {label: "Release Notes", icon: None, active: false, url: "/release-notes"},
+        {label: "Examples", icon: None, active: isActive("/examples", pathname), url: "/examples"},
+        {label: "Release Notes", icon: None, active: isActive("/release-notes", pathname), url: "/release-notes"},
       ],
     },
   ]
+
+  let sectionsSignal = Computed.make(() => makeSections(Signal.get(currentPath)))
 
   let logo =
     <a href="/" style="text-decoration: none; color: inherit;">
       <Typography text={static("ReScript Signals")} variant={H4} />
     </a>
-
-  let sidebar = <Sidebar logo sections />
 
   let topbarLeft =
     <a href="/" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem;">
@@ -86,6 +93,8 @@ let make = () => {
           </div>,
         ]
       } else {
+        let sections = Signal.get(sectionsSignal)
+        let sidebar = <Sidebar logo sections />
         [
           <AppLayout sidebar topbar>
             <div style="padding: 2rem; max-width: 900px;"> {routes} </div>
