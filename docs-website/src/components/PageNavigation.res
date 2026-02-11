@@ -54,12 +54,12 @@ let make = () => {
       Computed.make(() => {
         switch Signal.get(prevPage) {
         | Some(page) => [
-            <a
-              href={page.url}
+            <Router.Link
+              to={page.url}
               style="display: flex; flex-direction: column; text-decoration: none; color: inherit;">
               <Typography text={static("Previous")} variant={Small} />
               <Typography text={static(page.label)} variant={H5} />
-            </a>,
+            </Router.Link>,
           ]
         | None => [<div />]
         }
@@ -69,12 +69,12 @@ let make = () => {
       Computed.make(() => {
         switch Signal.get(nextPage) {
         | Some(page) => [
-            <a
-              href={page.url}
+            <Router.Link
+              to={page.url}
               style="display: flex; flex-direction: column; align-items: flex-end; text-decoration: none; color: inherit; margin-left: auto;">
               <Typography text={static("Next")} variant={Small} />
               <Typography text={static(page.label)} variant={H5} />
-            </a>,
+            </Router.Link>,
           ]
         | None => [<div />]
         }

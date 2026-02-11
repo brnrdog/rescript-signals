@@ -43,15 +43,15 @@ let make = () => {
   let sectionsSignal = Computed.make(() => makeSections(Signal.get(currentPath)))
 
   let logo =
-    <a href="/" style="text-decoration: none; color: inherit;">
+    <Router.Link to="/" style="text-decoration: none; color: inherit;">
       <Typography text={static("ReScript Signals")} variant={H4} />
-    </a>
+    </Router.Link>
 
   let topbarLeft =
-    <a href="/" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem;">
+    <Router.Link to="/" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem;">
       <Typography text={static("ReScript Signals")} variant={H5} />
       <Badge label={Signal.make("v" ++ version)} variant={Secondary} />
-    </a>
+    </Router.Link>
 
   let topbarRight =
     <div style="display: flex; align-items: center; gap: 1rem;">

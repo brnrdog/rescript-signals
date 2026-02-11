@@ -2,5 +2,5 @@ open Xote
 
 %%raw(`import './styles.css'`)
 
-Router.init()
+Router.init(~basePath="/rescript-signals", ())
 Component.mountById(<App />, "app")
