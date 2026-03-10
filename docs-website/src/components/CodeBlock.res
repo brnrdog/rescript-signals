@@ -2,6 +2,7 @@ open Xote
 open Xote.ReactiveProp
 open Basefn
 
+%%raw(`import 'highlight.js/styles/github.min.css'`)
 %%raw(`import 'highlight.js/styles/github-dark.min.css'`)
 
 @module("highlight.js") external hljs: 'a = "default"
@@ -50,11 +51,11 @@ let make = (~code: string, ~language: string="rescript") => {
   }
 
   <div style="position: relative;">
-    <pre class="code-block" style="background: #0d1117; padding: 1rem; padding-right: 4rem; border-radius: 8px; overflow-x: auto; margin: 0.5rem 0;">
+    <pre class="code-block hljs" style="padding: 1rem; padding-right: 4rem; border-radius: var(--basefn-radius-lg); overflow-x: auto; margin: 0.5rem 0; border: 1px solid var(--basefn-border-primary);">
       <code
         id
         class={"language-" ++ language}
-        style="font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace; font-size: 14px; line-height: 1.5;">
+        style="font-family: var(--basefn-font-family-mono); font-size: 14px; line-height: 1.5;">
         {Component.text(code)}
       </code>
     </pre>

@@ -22,7 +22,7 @@ html, body {
   border-bottom: 1px solid var(--basefn-border-primary);
 }
 
-/* Code block improvements */
+/* Code block — let highlight.js handle background via .hljs class */
 .code-block {
   margin: 0.75rem 0 !important;
 }
@@ -37,18 +37,9 @@ h1, h2, h3, h4, h5, h6 {
   margin-top: 0;
 }
 
-h2 {
-  margin-top: 2rem;
-}
-
 /* Separator spacing */
 .basefn-separator {
   margin: 2rem 0;
-}
-
-/* Grid improvements */
-.basefn-grid {
-  margin-bottom: 1rem;
 }
 
 /* Link styles */
@@ -73,18 +64,71 @@ a:hover {
   font-size: 0.75rem;
 }
 
-/* Card spacing within content pages */
-.basefn-card + .basefn-card {
-  margin-top: 1rem;
+/* Content area — centered in doc pages */
+.doc-content {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 2rem;
 }
 
-/* API page function signature headers */
-.basefn-card__header {
+/* Heading anchors */
+.heading-anchor {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.heading-anchor .anchor-link {
+  opacity: 0;
+  color: var(--basefn-text-muted);
+  text-decoration: none;
+  font-weight: 400;
+  transition: opacity var(--basefn-transition-fast);
+}
+
+.heading-anchor:hover .anchor-link {
+  opacity: 1;
+}
+
+/* API function signatures */
+.fn-signature {
   font-family: var(--basefn-font-family-mono);
   font-size: var(--basefn-font-size-sm);
+  background: var(--basefn-bg-secondary);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--basefn-radius-md);
+  border: 1px solid var(--basefn-border-primary);
+  margin-bottom: 0.75rem;
+  display: inline-block;
 }
 
-/* Hero section styles */
+/* Topbar nav links */
+.topbar-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.topbar-nav-links a {
+  text-decoration: none;
+  color: var(--basefn-text-secondary);
+  padding: 0.375rem 0.75rem;
+  border-radius: var(--basefn-radius-md);
+  font-size: var(--basefn-font-size-sm);
+  transition: color var(--basefn-transition-fast), background var(--basefn-transition-fast);
+}
+
+.topbar-nav-links a:hover {
+  color: var(--basefn-text-primary);
+  background: var(--basefn-bg-secondary);
+  opacity: 1;
+}
+
+/* =============================
+   Homepage styles
+   ============================= */
+
+/* Hero section */
 .hero-section {
   text-align: center;
   padding: 6rem 2rem 4rem;
@@ -125,43 +169,64 @@ a:hover {
   height: auto;
 }
 
-/* Feature section */
-.feature-section {
+/* Why section — split layout */
+.why-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
   padding: 4rem 2rem;
   max-width: 1100px;
   margin: 0 auto;
+  border-top: 1px solid var(--basefn-border-primary);
 }
 
-.feature-section-title {
-  text-align: center;
-  margin-bottom: 3rem !important;
+.why-left {
+  position: sticky;
+  top: 2rem;
+  align-self: start;
 }
 
-.feature-card {
-  text-align: left;
-}
-
-.feature-card .basefn-card__body {
-  padding: 1.5rem;
-}
-
-.feature-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--basefn-radius-lg);
-  background: var(--basefn-color-primary-background);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.why-left h2 {
   margin-bottom: 1rem;
-  color: var(--basefn-color-primary);
+}
+
+.why-right {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.why-benefit {
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--basefn-border-primary);
+}
+
+.why-benefit:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.why-benefit h4 {
+  margin-bottom: 0.5rem;
+}
+
+.why-benefit p {
+  margin: 0;
 }
 
 /* Code showcase section */
 .code-showcase {
-  padding: 4rem 2rem;
+  padding: 3rem 2rem;
   max-width: 900px;
   margin: 0 auto;
+}
+
+.code-showcase h3 {
+  margin-bottom: 0.5rem;
+}
+
+.code-showcase p {
+  margin-top: 0;
 }
 
 /* Bottom CTA section */
@@ -172,7 +237,9 @@ a:hover {
   margin-top: 2rem;
 }
 
-/* Responsive adjustments */
+/* =============================
+   Responsive
+   ============================= */
 @media (max-width: 768px) {
   .basefn-grid {
     grid-template-columns: 1fr !important;
@@ -195,7 +262,17 @@ a:hover {
     align-items: center;
   }
 
-  .feature-section {
+  .why-section {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    padding: 2rem 1.5rem;
+  }
+
+  .why-left {
+    position: static;
+  }
+
+  .code-showcase {
     padding: 2rem 1.5rem;
   }
 }

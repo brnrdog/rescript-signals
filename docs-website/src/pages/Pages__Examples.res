@@ -183,7 +183,10 @@ let make = () => {
         <DerivedStateExample />
       </Grid>
       <Separator />
-      <Typography text={static("Source Code")} variant={H2} />
+      <div class="heading-anchor" id="source-code">
+        <Typography text={static("Source Code")} variant={H2} />
+        <a class="anchor-link" href="#source-code"> {"#"->Component.text} </a>
+      </div>
       <Typography
         text={static(
           "These examples are built with xote and basefn. Check out the source code in the docs-website repository to see the full implementation.",

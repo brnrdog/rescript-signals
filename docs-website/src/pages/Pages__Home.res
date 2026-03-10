@@ -7,7 +7,7 @@ let make = () => {
   <div>
     // Hero Section
     <div class="hero-section">
-      <Typography text={static("ReScript Signals")} variant={H1} class="hero-title" />
+      <Typography text={static("rescript-signals")} variant={H1} class="hero-title" />
       <Typography
         text={static(
           "A lightweight, high-performance reactive signals library for ReScript. Zero dependencies, fine-grained reactivity, full type safety.",
@@ -23,23 +23,20 @@ let make = () => {
           {Component.text("API Reference")}
         </Button>
       </div>
-      <div style="display: inline-flex; align-items: center; gap: 0.5rem;">
-        <Badge label={Signal.make("v1.3.3")} variant={Secondary} size={Sm} />
+    </div>
+    // Why Section — split layout
+    <div class="why-section">
+      <div class="why-left">
+        <Typography text={static("Why rescript-signals?")} variant={H2} />
         <Typography
-          text={static("MIT Licensed")}
+          text={static(
+            "Built from the ground up for ReScript, rescript-signals gives you a simple, performant reactivity model with no compromise.",
+          )}
           variant={Muted}
         />
       </div>
-    </div>
-    <Separator />
-    // Features Section
-    <div class="feature-section">
-      <Typography text={static("Why ReScript Signals?")} variant={H2} class="feature-section-title" />
-      <Grid columns={Count(3)} gap="1.5rem">
-        <Card variant={Outlined} className="feature-card">
-          <div class="feature-icon">
-            <Icon name={Star} size={Md} />
-          </div>
+      <div class="why-right">
+        <div class="why-benefit">
           <Typography text={static("Zero Dependencies")} variant={H4} />
           <Typography
             text={static(
@@ -47,11 +44,8 @@ let make = () => {
             )}
             variant={Muted}
           />
-        </Card>
-        <Card variant={Outlined} className="feature-card">
-          <div class="feature-icon">
-            <Icon name={Settings} size={Md} />
-          </div>
+        </div>
+        <div class="why-benefit">
           <Typography text={static("Fine-Grained Reactivity")} variant={H4} />
           <Typography
             text={static(
@@ -59,11 +53,8 @@ let make = () => {
             )}
             variant={Muted}
           />
-        </Card>
-        <Card variant={Outlined} className="feature-card">
-          <div class="feature-icon">
-            <Icon name={Check} size={Md} />
-          </div>
+        </div>
+        <div class="why-benefit">
           <Typography text={static("Type Safe")} variant={H4} />
           <Typography
             text={static(
@@ -71,20 +62,27 @@ let make = () => {
             )}
             variant={Muted}
           />
-        </Card>
-      </Grid>
+        </div>
+        <div class="why-benefit">
+          <Typography text={static("Glitch-Free Updates")} variant={H4} />
+          <Typography
+            text={static(
+              "Computed values are recalculated in topological order, preventing intermediate inconsistent states.",
+            )}
+            variant={Muted}
+          />
+        </div>
+      </div>
     </div>
-    <Separator />
     // Code Showcase: Signals
     <div class="code-showcase">
-      <Typography text={static("Create reactive state with Signals")} variant={H2} align={Center} />
+      <Typography text={static("Create reactive state with Signals")} variant={H3} />
       <Typography
         text={static(
           "Signals are reactive containers that hold a value. When the value changes, all subscribers are automatically notified.",
         )}
         variant={Muted}
-        align={Center}
-        style="margin-bottom: 1.5rem;"
+        style="margin-bottom: 1rem;"
       />
       <CodeBlock
         language="rescript"
@@ -100,17 +98,15 @@ Signal.set(count, 5)
 Signal.update(count, n => n + 1) // 6`}
       />
     </div>
-    <Separator />
     // Code Showcase: Computed
     <div class="code-showcase">
-      <Typography text={static("Derive values with Computed")} variant={H2} align={Center} />
+      <Typography text={static("Derive values with Computed")} variant={H3} />
       <Typography
         text={static(
           "Computed values automatically recalculate when their dependencies change. Values are lazily evaluated and cached.",
         )}
         variant={Muted}
-        align={Center}
-        style="margin-bottom: 1.5rem;"
+        style="margin-bottom: 1rem;"
       />
       <CodeBlock
         language="rescript"
@@ -123,17 +119,15 @@ Signal.set(count, 10)
 Computed.get(doubled) // 20 — automatically updated`}
       />
     </div>
-    <Separator />
     // Code Showcase: Effects
     <div class="code-showcase">
-      <Typography text={static("React to changes with Effects")} variant={H2} align={Center} />
+      <Typography text={static("React to changes with Effects")} variant={H3} />
       <Typography
         text={static(
           "Effects run side effects whenever their dependencies change. Perfect for DOM updates, logging, or API calls.",
         )}
         variant={Muted}
-        align={Center}
-        style="margin-bottom: 1.5rem;"
+        style="margin-bottom: 1rem;"
       />
       <CodeBlock
         language="rescript"
@@ -148,7 +142,6 @@ Signal.set(count, 1)
 // Logs: "Count is: 1" — effect re-runs automatically`}
       />
     </div>
-    <Separator />
     // Bottom CTA
     <div class="bottom-cta">
       <Typography text={static("Ready to get started?")} variant={H2} />
