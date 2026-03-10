@@ -11,7 +11,7 @@ module CounterExample = {
     let count = Signal.make(0)
     let countText = Computed.make(() => Signal.get(count)->Int.toString)
 
-    <Card header="Counter">
+    <Card header="Counter" variant={Outlined}>
       <div style="display: flex; align-items: center; gap: 1rem;">
         <Button variant={Secondary} onClick={_ => Signal.update(count, n => n - 1)}>
           {Component.text("-")}
@@ -45,7 +45,7 @@ module TodoExample = {
       Signal.update(todos, arr => arr->Array.filter(t => t != todoText))
     }
 
-    <Card header="Todo List">
+    <Card header="Todo List" variant={Outlined}>
       <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
         <Input
           value={reactive(inputValue)}
@@ -57,7 +57,7 @@ module TodoExample = {
       <div>
         {Component.list(todos, todo => {
           <div
-            style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--basefn-color-border);">
+            style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--basefn-border-primary);">
             <Typography text={static(todo)} />
             <Button variant={Ghost} onClick={_ => removeTodo(todo)}>
               {Component.text("Remove")}
@@ -99,7 +99,7 @@ module DerivedStateExample = {
 
     let taxRateStrSignal = Signal.make("0.1")
 
-    <Card header="Derived State (Shopping Cart)">
+    <Card header="Derived State (Shopping Cart)" variant={Outlined}>
       <Grid columns={Count(3)} gap="0.5rem">
         <div>
           <Label text="Price" />
@@ -171,24 +171,24 @@ module DerivedStateExample = {
 let make = () => {
   <div>
     <div>
-    <Typography text={static("Examples")} variant={H1} />
-    <Typography
-      text={static("Interactive examples demonstrating rescript-signals patterns.")}
-      variant={Lead}
-    />
-    <Separator />
-    <Grid columns={Count(1)} gap="1.5rem">
-      <CounterExample />
-      <TodoExample />
-      <DerivedStateExample />
-    </Grid>
-    <Separator />
-    <Typography text={static("Source Code")} variant={H2} />
-    <Typography
-      text={static(
-        "These examples are built with xote and basefn. Check out the source code in the docs-website repository to see the full implementation.",
-      )}
-    />
+      <Typography text={static("Examples")} variant={H1} />
+      <Typography
+        text={static("Interactive examples demonstrating rescript-signals patterns.")}
+        variant={Lead}
+      />
+      <Separator />
+      <Grid columns={Count(1)} gap="1.5rem">
+        <CounterExample />
+        <TodoExample />
+        <DerivedStateExample />
+      </Grid>
+      <Separator />
+      <Typography text={static("Source Code")} variant={H2} />
+      <Typography
+        text={static(
+          "These examples are built with xote and basefn. Check out the source code in the docs-website repository to see the full implementation.",
+        )}
+      />
     </div>
     <EditOnGitHub pageName="Pages__Examples" />
   </div>
