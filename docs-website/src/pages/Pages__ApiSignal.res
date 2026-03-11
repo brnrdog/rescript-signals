@@ -1,39 +1,41 @@
-
-open Xote.ReactiveProp
-open Basefn
+open Xote
 
 @jsx.component
 let make = () => {
   <div>
-    <div>
-    <Typography text={static("Signal")} variant={H1} />
-    <Typography
-      text={static("The core reactive primitive for holding mutable state.")}
-      variant={Lead}
-    />
-    <Separator />
-    <Typography text={static("Creating Signals")} variant={H2} />
-    <Card header="Signal.make(value)">
-      <Typography text={static("Creates a new signal with an initial value.")} />
+    <h1 class="page-title"> {"Signal"->Component.text} </h1>
+    <p class="lead">
+      {"The core reactive primitive for holding mutable state."->Component.text}
+    </p>
+    // Creating Signals
+    <h2 id="creating-signals"> {"Creating Signals"->Component.text} </h2>
+    <div class="api-signature">
+      <div class="api-signature-header"> {"Signal.make(value)"->Component.text} </div>
+      <div class="api-signature-desc">
+        {"Creates a new signal with an initial value."->Component.text}
+      </div>
       <CodeBlock
         language="rescript"
         code={`let count = Signal.make(0)
 let name = Signal.make("Alice")
 let items = Signal.make(["a", "b", "c"])`}
       />
-    </Card>
-    <Card header="Signal.make(~name, value)">
-      <Typography text={static("Creates a named signal for debugging purposes.")} />
+    </div>
+    <div class="api-signature">
+      <div class="api-signature-header"> {"Signal.make(~name, value)"->Component.text} </div>
+      <div class="api-signature-desc">
+        {"Creates a named signal for debugging purposes."->Component.text}
+      </div>
       <CodeBlock language="rescript" code={`let count = Signal.make(~name="counter", 0)`} />
-    </Card>
-    <Separator />
-    <Typography text={static("Reading Signals")} variant={H2} />
-    <Card header="Signal.get(signal)">
-      <Typography
-        text={static(
-          "Reads the current value and creates a dependency. When called inside a Computed or Effect, the computed/effect will re-run when this signal changes.",
-        )}
-      />
+    </div>
+    // Reading Signals
+    <h2 id="reading-signals"> {"Reading Signals"->Component.text} </h2>
+    <div class="api-signature">
+      <div class="api-signature-header"> {"Signal.get(signal)"->Component.text} </div>
+      <div class="api-signature-desc">
+        {"Reads the current value and creates a dependency. When called inside a Computed or Effect, the computed/effect will re-run when this signal changes."
+        ->Component.text}
+      </div>
       <CodeBlock
         language="rescript"
         code={`let count = Signal.make(5)
@@ -42,13 +44,13 @@ let value = Signal.get(count) // 5
 // Inside a computed - creates a dependency
 let doubled = Computed.make(() => Signal.get(count) * 2)`}
       />
-    </Card>
-    <Card header="Signal.peek(signal)">
-      <Typography
-        text={static(
-          "Reads the current value without creating a dependency. Useful when you need to read a value but don't want to trigger re-computation.",
-        )}
-      />
+    </div>
+    <div class="api-signature">
+      <div class="api-signature-header"> {"Signal.peek(signal)"->Component.text} </div>
+      <div class="api-signature-desc">
+        {"Reads the current value without creating a dependency. Useful when you need to read a value but don't want to trigger re-computation."
+        ->Component.text}
+      </div>
       <CodeBlock
         language="rescript"
         code={`let count = Signal.make(5)
@@ -56,29 +58,41 @@ let doubled = Computed.make(() => Signal.get(count) * 2)`}
 // Won't create a dependency
 let value = Signal.peek(count)`}
       />
-    </Card>
-    <Separator />
-    <Typography text={static("Updating Signals")} variant={H2} />
-    <Card header="Signal.set(signal, value)">
-      <Typography text={static("Sets a new value for the signal.")} />
+    </div>
+    <Callout type_={Tip}>
+      <p>
+        {"Use peek when you need to read a value in an effect without subscribing to future changes. This prevents unnecessary re-runs."
+        ->Component.text}
+      </p>
+    </Callout>
+    // Updating Signals
+    <h2 id="updating-signals"> {"Updating Signals"->Component.text} </h2>
+    <div class="api-signature">
+      <div class="api-signature-header"> {"Signal.set(signal, value)"->Component.text} </div>
+      <div class="api-signature-desc">
+        {"Sets a new value for the signal."->Component.text}
+      </div>
       <CodeBlock language="rescript" code={`Signal.set(count, 10)`} />
-    </Card>
-    <Card header="Signal.update(signal, fn)">
-      <Typography text={static("Updates the signal value based on the previous value.")} />
+    </div>
+    <div class="api-signature">
+      <div class="api-signature-header"> {"Signal.update(signal, fn)"->Component.text} </div>
+      <div class="api-signature-desc">
+        {"Updates the signal value based on the previous value."->Component.text}
+      </div>
       <CodeBlock
         language="rescript"
         code={`Signal.update(count, n => n + 1)
 Signal.update(items, arr => Array.concat(arr, ["d"]))`}
       />
-    </Card>
-    <Separator />
-    <Typography text={static("Batching Updates")} variant={H2} />
-    <Card header="Signal.batch(fn)">
-      <Typography
-        text={static(
-          "Batches multiple signal updates into a single notification cycle. Improves performance when updating many signals at once.",
-        )}
-      />
+    </div>
+    // Batching
+    <h2 id="batching-updates"> {"Batching Updates"->Component.text} </h2>
+    <div class="api-signature">
+      <div class="api-signature-header"> {"Signal.batch(fn)"->Component.text} </div>
+      <div class="api-signature-desc">
+        {"Batches multiple signal updates into a single notification cycle. Improves performance when updating many signals at once."
+        ->Component.text}
+      </div>
       <CodeBlock
         language="rescript"
         code={`let firstName = Signal.make("John")
@@ -90,15 +104,21 @@ Signal.batch(() => {
   Signal.set(lastName, "Smith")
 })`}
       />
-    </Card>
-    <Separator />
-    <Typography text={static("Untracked Reads")} variant={H2} />
-    <Card header="Signal.untrack(fn)">
-      <Typography
-        text={static(
-          "Reads signals without creating dependencies. Similar to peek but works for a block of code.",
-        )}
-      />
+    </div>
+    <Callout type_={Note}>
+      <p>
+        {"Batching is especially useful when updating multiple related signals simultaneously. Without batching, each set call would trigger dependent computations individually."
+        ->Component.text}
+      </p>
+    </Callout>
+    // Untracked
+    <h2 id="untracked-reads"> {"Untracked Reads"->Component.text} </h2>
+    <div class="api-signature">
+      <div class="api-signature-header"> {"Signal.untrack(fn)"->Component.text} </div>
+      <div class="api-signature-desc">
+        {"Reads signals without creating dependencies. Similar to peek but works for a block of code."
+        ->Component.text}
+      </div>
       <CodeBlock
         language="rescript"
         code={`let a = Signal.make(1)
@@ -111,8 +131,13 @@ let computed = Computed.make(() => {
   aVal + bVal
 })`}
       />
-    </Card>
     </div>
+    <Callout type_={Warning}>
+      <p>
+        {"Be careful with untrack \u2014 the computed will not re-run when untracked signals change, which can lead to stale values if not used intentionally."
+        ->Component.text}
+      </p>
+    </Callout>
     <EditOnGitHub pageName="Pages__ApiSignal" />
   </div>
 }

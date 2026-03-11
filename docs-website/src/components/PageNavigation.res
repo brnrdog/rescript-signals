@@ -1,13 +1,10 @@
 open Xote
-open Xote.ReactiveProp
-open Basefn
 
 type pageInfo = {
   label: string,
   url: string,
 }
 
-// Define the order of pages in the documentation
 let pageOrder: array<pageInfo> = [
   {label: "Getting Started", url: "/getting-started"},
   {label: "Signal API", url: "/api/signal"},
@@ -18,7 +15,10 @@ let pageOrder: array<pageInfo> = [
 ]
 
 let findCurrentIndex = (pathname: string): option<int> => {
-  pageOrder->Array.findIndex(page => page.url == pathname)->Some->Option.flatMap(idx =>
+  pageOrder
+  ->Array.findIndex(page => page.url == pathname)
+  ->Some
+  ->Option.flatMap(idx =>
     if idx >= 0 {
       Some(idx)
     } else {
@@ -45,20 +45,19 @@ let getNextPage = (pathname: string): option<pageInfo> => {
 let make = () => {
   let location = Router.location()
   let pathname = Computed.make(() => Signal.get(location).pathname)
-
   let prevPage = Computed.make(() => getPreviousPage(Signal.get(pathname)))
   let nextPage = Computed.make(() => getNextPage(Signal.get(pathname)))
 
-  <div style="margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--basefn-color-border); display: flex; justify-content: space-between;">
+  <div class="page-nav">
     {Component.signalFragment(
       Computed.make(() => {
         switch Signal.get(prevPage) {
         | Some(page) => [
-            <Router.Link
-              to={page.url}
-              style="display: flex; flex-direction: column; text-decoration: none; color: inherit;">
-              <Typography text={static("Previous")} variant={Small} />
-              <Typography text={static(page.label)} variant={H5} />
+            <Router.Link to={page.url} class="page-nav-link">
+              <span class="page-nav-label">
+                {"\u2190 Previous"->Component.text}
+              </span>
+              <span class="page-nav-title"> {page.label->Component.text} </span>
             </Router.Link>,
           ]
         | None => [<div />]
@@ -69,11 +68,11 @@ let make = () => {
       Computed.make(() => {
         switch Signal.get(nextPage) {
         | Some(page) => [
-            <Router.Link
-              to={page.url}
-              style="display: flex; flex-direction: column; align-items: flex-end; text-decoration: none; color: inherit; margin-left: auto;">
-              <Typography text={static("Next")} variant={Small} />
-              <Typography text={static(page.label)} variant={H5} />
+            <Router.Link to={page.url} class="page-nav-link next">
+              <span class="page-nav-label">
+                {"Next \u2192"->Component.text}
+              </span>
+              <span class="page-nav-title"> {page.label->Component.text} </span>
             </Router.Link>,
           ]
         | None => [<div />]

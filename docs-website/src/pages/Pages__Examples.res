@@ -1,8 +1,6 @@
 open Xote
-open Xote.ReactiveProp
 open Basefn
 
-// Simple DOM helpers
 let getInputValue: Dom.event => string = %raw(`function(e) { return e.target.value }`)
 
 module CounterExample = {
@@ -11,19 +9,36 @@ module CounterExample = {
     let count = Signal.make(0)
     let countText = Computed.make(() => Signal.get(count)->Int.toString)
 
-    <Card header="Counter">
-      <div style="display: flex; align-items: center; gap: 1rem;">
-        <Button variant={Secondary} onClick={_ => Signal.update(count, n => n - 1)}>
-          {Component.text("-")}
-        </Button>
-        <div style="font-size: 1.5rem; font-weight: bold; min-width: 3rem; text-align: center;">
+    <div class="api-signature">
+      <div class="api-signature-header"> {"Counter"->Component.text} </div>
+      <div style="display: flex; align-items: center; gap: 1rem; margin-top: 0.75rem;">
+        <button
+          class="btn btn-ghost"
+          style="padding: 0.5rem 1rem;"
+          onClick={_ => Signal.update(count, n => n - 1)}>
+          {"-"->Component.text}
+        </button>
+        <div
+          style="font-size: 2rem; font-weight: 700; min-width: 3rem; text-align: center; font-family: 'JetBrains Mono', monospace; color: var(--text-primary);">
           {Component.textSignal(() => Signal.get(countText))}
         </div>
-        <Button variant={Secondary} onClick={_ => Signal.update(count, n => n + 1)}>
-          {Component.text("+")}
-        </Button>
+        <button
+          class="btn btn-ghost"
+          style="padding: 0.5rem 1rem;"
+          onClick={_ => Signal.update(count, n => n + 1)}>
+          {"+"->Component.text}
+        </button>
       </div>
-    </Card>
+      <div style="margin-top: 1rem;">
+        <CodeBlock
+          language="rescript"
+          code={`let count = Signal.make(0)
+let countText = Computed.make(() =>
+  Signal.get(count)->Int.toString
+)`}
+        />
+      </div>
+    </div>
   }
 }
 
@@ -45,27 +60,35 @@ module TodoExample = {
       Signal.update(todos, arr => arr->Array.filter(t => t != todoText))
     }
 
-    <Card header="Todo List">
-      <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-        <Input
-          value={reactive(inputValue)}
-          onInput={evt => Signal.set(inputValue, getInputValue(evt))}
-          placeholder="Add a todo..."
-        />
-        <Button variant={Primary} onClick={addTodo}> {Component.text("Add")} </Button>
+    <div class="api-signature">
+      <div class="api-signature-header"> {"Todo List"->Component.text} </div>
+      <div style="margin-top: 0.75rem;">
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+          <Input
+            value={Xote.ReactiveProp.reactive(inputValue)}
+            onInput={evt => Signal.set(inputValue, getInputValue(evt))}
+            placeholder="Add a todo..."
+          />
+          <button class="btn btn-primary" style="padding: 0.5rem 1rem;" onClick={addTodo}>
+            {"Add"->Component.text}
+          </button>
+        </div>
+        <div>
+          {Component.list(todos, todo => {
+            <div
+              style="display: flex; justify-content: space-between; align-items: center; padding: 0.625rem 0; border-bottom: 1px solid var(--border-default);">
+              <span> {todo->Component.text} </span>
+              <button
+                class="icon-btn"
+                style="width: 28px; height: 28px; font-size: 0.875rem;"
+                onClick={_ => removeTodo(todo)}>
+                {"\u2715"->Component.text}
+              </button>
+            </div>
+          })}
+        </div>
       </div>
-      <div>
-        {Component.list(todos, todo => {
-          <div
-            style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--basefn-color-border);">
-            <Typography text={static(todo)} />
-            <Button variant={Ghost} onClick={_ => removeTodo(todo)}>
-              {Component.text("Remove")}
-            </Button>
-          </div>
-        })}
-      </div>
-    </Card>
+    </div>
   }
 }
 
@@ -99,97 +122,119 @@ module DerivedStateExample = {
 
     let taxRateStrSignal = Signal.make("0.1")
 
-    <Card header="Derived State (Shopping Cart)">
-      <Grid columns={Count(3)} gap="0.5rem">
-        <div>
-          <Label text="Price" />
-          <Input
-            type_={Number}
-            value={reactive(priceStr)}
-            onInput={evt => {
-              switch Float.fromString(getInputValue(evt)) {
-              | Some(v) => Signal.set(price, v)
-              | None => ()
-              }
-            }}
-          />
+    <div class="api-signature">
+      <div class="api-signature-header"> {"Derived State (Shopping Cart)"->Component.text} </div>
+      <div style="margin-top: 0.75rem;">
+        <div
+          style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem;">
+          <div>
+            <Label text="Price" />
+            <Input
+              type_={Number}
+              value={Xote.ReactiveProp.reactive(priceStr)}
+              onInput={evt => {
+                switch Float.fromString(getInputValue(evt)) {
+                | Some(v) => Signal.set(price, v)
+                | None => ()
+                }
+              }}
+            />
+          </div>
+          <div>
+            <Label text="Quantity" />
+            <Input
+              type_={Number}
+              value={Xote.ReactiveProp.reactive(quantityStr)}
+              onInput={evt => {
+                switch Int.fromString(getInputValue(evt)) {
+                | Some(v) => Signal.set(quantity, v)
+                | None => ()
+                }
+              }}
+            />
+          </div>
+          <div>
+            <Label text="Tax Rate" />
+            <Select
+              value={taxRateStrSignal}
+              onChange={_ => {
+                switch Float.fromString(Signal.get(taxRateStrSignal)) {
+                | Some(v) => Signal.set(taxRate, v)
+                | None => ()
+                }
+              }}
+              options={taxRateOptions}
+            />
+          </div>
         </div>
-        <div>
-          <Label text="Quantity" />
-          <Input
-            type_={Number}
-            value={reactive(quantityStr)}
-            onInput={evt => {
-              switch Int.fromString(getInputValue(evt)) {
-              | Some(v) => Signal.set(quantity, v)
-              | None => ()
-              }
-            }}
-          />
-        </div>
-        <div>
-          <Label text="Tax Rate" />
-          <Select
-            value={taxRateStrSignal}
-            onChange={_ => {
-              switch Float.fromString(Signal.get(taxRateStrSignal)) {
-              | Some(v) => Signal.set(taxRate, v)
-              | None => ()
-              }
-            }}
-            options={taxRateOptions}
-          />
-        </div>
-      </Grid>
-      <Separator />
-      <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-        <div style="display: flex; justify-content: space-between;">
-          <Typography text={static("Subtotal:")} />
-          <span>
-            {Component.textSignal(() => `$${Signal.get(subtotal)->Float.toFixed(~digits=2)}`)}
-          </span>
-        </div>
-        <div style="display: flex; justify-content: space-between;">
-          <Typography text={static("Tax:")} />
-          <span>
-            {Component.textSignal(() => `$${Signal.get(tax)->Float.toFixed(~digits=2)}`)}
-          </span>
-        </div>
-        <Separator />
-        <div style="display: flex; justify-content: space-between;">
-          <Typography text={static("Total:")} variant={H4} />
-          <span style="font-size: 1.25rem; font-weight: bold;">
-            {Component.textSignal(() => `$${Signal.get(total)->Float.toFixed(~digits=2)}`)}
-          </span>
+        <div
+          style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-default);">
+          <div
+            style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.9375rem;">
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-secondary);"> {"Subtotal:"->Component.text} </span>
+              <span style="font-family: 'JetBrains Mono', monospace;">
+                {Component.textSignal(
+                  () => `$${Signal.get(subtotal)->Float.toFixed(~digits=2)}`,
+                )}
+              </span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-secondary);"> {"Tax:"->Component.text} </span>
+              <span style="font-family: 'JetBrains Mono', monospace;">
+                {Component.textSignal(() => `$${Signal.get(tax)->Float.toFixed(~digits=2)}`)}
+              </span>
+            </div>
+            <div
+              style="display: flex; justify-content: space-between; padding-top: 0.75rem; border-top: 1px solid var(--border-default); font-weight: 600; font-size: 1.125rem;">
+              <span> {"Total:"->Component.text} </span>
+              <span style="font-family: 'JetBrains Mono', monospace; color: var(--text-accent);">
+                {Component.textSignal(
+                  () => `$${Signal.get(total)->Float.toFixed(~digits=2)}`,
+                )}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
-    </Card>
+    </div>
   }
 }
 
 @jsx.component
 let make = () => {
   <div>
-    <div>
-    <Typography text={static("Examples")} variant={H1} />
-    <Typography
-      text={static("Interactive examples demonstrating rescript-signals patterns.")}
-      variant={Lead}
-    />
-    <Separator />
-    <Grid columns={Count(1)} gap="1.5rem">
-      <CounterExample />
-      <TodoExample />
-      <DerivedStateExample />
-    </Grid>
-    <Separator />
-    <Typography text={static("Source Code")} variant={H2} />
-    <Typography
-      text={static(
-        "These examples are built with xote and basefn. Check out the source code in the docs-website repository to see the full implementation.",
-      )}
-    />
-    </div>
+    <h1 class="page-title"> {"Examples"->Component.text} </h1>
+    <p class="lead">
+      {"Interactive examples demonstrating rescript-signals patterns."->Component.text}
+    </p>
+    <Callout type_={Tip}>
+      <p>
+        {"These examples are live \u2014 interact with them to see reactivity in action. All state is managed with signals, computed values, and effects."
+        ->Component.text}
+      </p>
+    </Callout>
+    <h2 id="counter"> {"Counter"->Component.text} </h2>
+    <p>
+      {"A simple counter demonstrating signals and computed values."->Component.text}
+    </p>
+    <CounterExample />
+    <h2 id="todo-list"> {"Todo List"->Component.text} </h2>
+    <p>
+      {"A todo list with add and remove functionality using signal arrays."->Component.text}
+    </p>
+    <TodoExample />
+    <h2 id="derived-state"> {"Derived State"->Component.text} </h2>
+    <p>
+      {"A shopping cart demonstrating how computed values compose to derive complex state from simple signals."
+      ->Component.text}
+    </p>
+    <DerivedStateExample />
+    <h2 id="source-code"> {"Source Code"->Component.text} </h2>
+    <p style="color: var(--text-secondary);">
+      {"These examples are built with xote and basefn. Check out the source code in the docs-website repository to see the full implementation."
+      ->Component.text}
+    </p>
     <EditOnGitHub pageName="Pages__Examples" />
   </div>
 }
