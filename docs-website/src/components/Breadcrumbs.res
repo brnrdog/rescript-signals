@@ -7,15 +7,13 @@ type breadcrumb = {
 
 // Map paths to their breadcrumb hierarchy
 let getBreadcrumbs = (pathname: string): array<breadcrumb> => {
-  let home = {label: "Home", url: Some("/")}
-
   switch pathname {
-  | "/getting-started" => [home, {label: "Getting Started", url: None}]
-  | "/api/signal" => [home, {label: "API Reference", url: None}, {label: "Signal", url: None}]
-  | "/api/computed" => [home, {label: "API Reference", url: None}, {label: "Computed", url: None}]
-  | "/api/effect" => [home, {label: "API Reference", url: None}, {label: "Effect", url: None}]
-  | "/examples" => [home, {label: "Examples", url: None}]
-  | "/release-notes" => [home, {label: "Release Notes", url: None}]
+  | "/getting-started" => [{label: "Getting Started", url: None}]
+  | "/api/signal" => [{label: "API Reference", url: None}, {label: "Signal", url: None}]
+  | "/api/computed" => [{label: "API Reference", url: None}, {label: "Computed", url: None}]
+  | "/api/effect" => [{label: "API Reference", url: None}, {label: "Effect", url: None}]
+  | "/examples" => [{label: "Examples", url: None}]
+  | "/release-notes" => [{label: "Release Notes", url: None}]
   | _ => []
   }
 }
@@ -32,13 +30,13 @@ let make = () => {
         []
       } else {
         [
-          <nav style="margin-bottom: 1rem;">
-            <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; color: var(--basefn-color-muted);">
+          <nav style="margin-bottom: 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; color: var(--basefn-text-tertiary);">
               {Component.fragment(
                 crumbs->Array.mapWithIndex((crumb, idx) => {
                   let isLast = idx == Array.length(crumbs) - 1
                   let separator = if !isLast {
-                    <span style="color: var(--basefn-color-muted);"> {"/"->Component.text} </span>
+                    <span style="color: var(--basefn-text-muted);"> {"/"->Component.text} </span>
                   } else {
                     <span />
                   }
@@ -46,13 +44,13 @@ let make = () => {
                   switch crumb.url {
                   | Some(url) =>
                     <span>
-                      <Router.Link to={url} style="color: var(--basefn-color-muted); text-decoration: none;">
+                      <Router.Link to={url} style="color: var(--basefn-text-tertiary); text-decoration: none;">
                         {crumb.label->Component.text}
                       </Router.Link>
                       {separator}
                     </span>
                   | None =>
-                    <span style={isLast ? "color: var(--basefn-color-foreground);" : ""}>
+                    <span style={isLast ? "color: var(--basefn-text-primary);" : ""}>
                       {crumb.label->Component.text}
                       {separator}
                     </span>

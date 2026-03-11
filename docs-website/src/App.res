@@ -2,7 +2,22 @@ open Xote
 open Xote.ReactiveProp
 open Basefn
 
-let version = "1.3.3"
+// Fetch latest version from npm registry
+@val external fetch: string => promise<'a> = "fetch"
+@send external json: 'a => promise<'b> = "json"
+
+let npmVersion = Signal.make("...")
+
+let _ = fetch("https://registry.npmjs.org/rescript-signals/latest")
+->Promise.then(response => response->json)
+->Promise.then((data: {"version": string}) => {
+  Signal.set(npmVersion, data["version"])
+  Promise.resolve()
+})
+->Promise.catch(_ => {
+  Signal.set(npmVersion, "1.3.3")
+  Promise.resolve()
+})
 
 // Helper to check if a URL matches the current path
 let isActive = (url: string, pathname: string) => {
@@ -44,20 +59,27 @@ let make = () => {
 
   let logo =
     <Router.Link to="/" style="text-decoration: none; color: inherit;">
-      <Typography text={static("ReScript Signals")} variant={H4} />
+      <Typography text={static("rescript-signals")} variant={H4} />
     </Router.Link>
 
   let topbarLeft =
-    <Router.Link to="/" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem;">
-      <Typography text={static("ReScript Signals")} variant={H5} />
-      <Badge label={Signal.make("v" ++ version)} variant={Secondary} />
-    </Router.Link>
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <Router.Link to="/" style="text-decoration: none; color: inherit; display: flex; align-items: center;">
+        <Typography text={static("rescript-signals")} variant={H5} />
+      </Router.Link>
+      <div class="topbar-nav-links">
+        <Router.Link to="/getting-started"> {Component.text("Installation")} </Router.Link>
+        <Router.Link to="/api/signal"> {Component.text("API Reference")} </Router.Link>
+        <Router.Link to="/examples"> {Component.text("Examples")} </Router.Link>
+      </div>
+    </div>
 
   let topbarRight =
-    <div style="display: flex; align-items: center; gap: 1rem;">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
       <div style="width: 200px;">
         <Search />
       </div>
+      <Badge label={Computed.make(() => "v" ++ Signal.get(npmVersion))} variant={Secondary} size={Sm} />
       <a
         href="https://github.com/brnrdog/rescript-signals"
         target="_blank"
@@ -87,7 +109,7 @@ let make = () => {
         [
           <div style="min-height: 100vh; display: flex; flex-direction: column;">
             {topbar}
-            <main style="flex: 1; padding: 2rem; max-width: 1200px; margin: 0 auto; width: 100%;">
+            <main style="flex: 1;">
               {routes}
             </main>
           </div>,
@@ -97,7 +119,7 @@ let make = () => {
         let sidebar = <Sidebar logo sections />
         [
           <AppLayout sidebar topbar>
-            <div style="padding: 2rem; max-width: 900px;">
+            <div class="doc-content">
               <Breadcrumbs />
               {routes}
               <PageNavigation />
