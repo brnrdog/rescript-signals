@@ -3,12 +3,36 @@ open Basefn
 
 @jsx.component
 let make = () => {
-  // Interactive counter demo
+  // Tab state
   let demoTab = Signal.make(0)
+
+  // --- Tab 0: Signals & Computed ---
   let demoCount = Signal.make(0)
   let demoCountText = Computed.make(() => Signal.get(demoCount)->Int.toString)
   let demoDoubled = Computed.make(() => Signal.get(demoCount) * 2)
   let demoDoubledText = Computed.make(() => Signal.get(demoDoubled)->Int.toString)
+
+  // --- Tab 1: Batching ---
+  let firstName = Signal.make("John")
+  let lastName = Signal.make("Doe")
+  let fullName = Computed.make(() => Signal.get(firstName) ++ " " ++ Signal.get(lastName))
+  let batchLog: Signal.t<array<string>> = Signal.make([])
+  let renderCount = Signal.make(0)
+  let _ = Effect.run(() => {
+    let _fn = Signal.get(fullName)
+    Signal.update(renderCount, n => n + 1)
+    None
+  })
+
+  // --- Tab 2: Untracked Reads ---
+  let trackedVal = Signal.make(1)
+  let untrackedVal = Signal.make(10)
+  let trackedResult = Computed.make(() => {
+    let a = Signal.get(trackedVal)
+    let b = Signal.untrack(() => Signal.get(untrackedVal))
+    a + b
+  })
+  let untrackedLog: Signal.t<array<string>> = Signal.make([])
 
   let demoCode0 = `let count = Signal.make(0)
 
@@ -23,20 +47,37 @@ Effect.run(() => {
   Console.log(\`Count: \${v->Int.toString}\`)
 })`
 
-  let demoCode1 = `// Batch multiple updates
+  let demoCode1 = `let firstName = Signal.make("John")
+let lastName = Signal.make("Doe")
+let fullName = Computed.make(() =>
+  Signal.get(firstName) ++ " " ++
+  Signal.get(lastName)
+)
+
+// Without batching: 2 re-computations
+Signal.set(firstName, "Jane")
+Signal.set(lastName, "Smith")
+
+// With batching: only 1 re-computation
 Signal.batch(() => {
   Signal.set(firstName, "Jane")
   Signal.set(lastName, "Smith")
-})
-// Subscribers notified only once`
-
-  let demoCode2 = `// Read without tracking
-let value = Signal.peek(count)
-
-// Untracked block
-let result = Signal.untrack(() => {
-  Signal.get(a) + Signal.get(b)
 })`
+
+  let demoCode2 = `let tracked = Signal.make(1)
+let untracked = Signal.make(10)
+
+// Only re-runs when 'tracked' changes
+let result = Computed.make(() => {
+  let a = Signal.get(tracked)
+  let b = Signal.untrack(() =>
+    Signal.get(untracked)
+  )
+  a + b
+})
+
+Signal.set(tracked, 2)    // result updates
+Signal.set(untracked, 20) // result unchanged`
 
   <div>
     // Hero Section
@@ -175,42 +216,193 @@ let result = Signal.untrack(() => {
           </div>
           <div class="code-demo-output">
             <div class="code-demo-output-label"> {"Live Output"->Component.text} </div>
-            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-              <div>
-                <div
-                  style="font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 0.5rem;">
-                  {"count"->Component.text}
-                </div>
-                <div
-                  style="font-size: 2.5rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text-primary);">
-                  {Component.textSignal(() => Signal.get(demoCountText))}
-                </div>
-              </div>
-              <div>
-                <div
-                  style="font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 0.5rem;">
-                  {"doubled (computed)"->Component.text}
-                </div>
-                <div
-                  style="font-size: 2.5rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text-accent);">
-                  {Component.textSignal(() => Signal.get(demoDoubledText))}
-                </div>
-              </div>
-              <div style="display: flex; gap: 0.75rem;">
-                <button
-                  class="btn btn-ghost"
-                  style="padding: 0.5rem 1rem; font-size: 0.875rem;"
-                  onClick={_ => Signal.update(demoCount, n => n - 1)}>
-                  {"- Decrement"->Component.text}
-                </button>
-                <button
-                  class="btn btn-primary"
-                  style="padding: 0.5rem 1rem; font-size: 0.875rem;"
-                  onClick={_ => Signal.update(demoCount, n => n + 1)}>
-                  {"+ Increment"->Component.text}
-                </button>
-              </div>
-            </div>
+            {Component.signalFragment(
+              Computed.make(() => {
+                let tab = Signal.get(demoTab)
+                switch tab {
+                // Tab 0: Signals & Computed
+                | 0 => [
+                    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                      <div>
+                        <div
+                          style="font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+                          {"count"->Component.text}
+                        </div>
+                        <div
+                          style="font-size: 2.5rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text-primary);">
+                          {Component.textSignal(() => Signal.get(demoCountText))}
+                        </div>
+                      </div>
+                      <div>
+                        <div
+                          style="font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+                          {"doubled (computed)"->Component.text}
+                        </div>
+                        <div
+                          style="font-size: 2.5rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text-accent);">
+                          {Component.textSignal(() => Signal.get(demoDoubledText))}
+                        </div>
+                      </div>
+                      <div style="display: flex; gap: 0.75rem;">
+                        <button
+                          class="btn btn-ghost"
+                          style="padding: 0.5rem 1rem; font-size: 0.875rem;"
+                          onClick={_ => Signal.update(demoCount, n => n - 1)}>
+                          {"- Decrement"->Component.text}
+                        </button>
+                        <button
+                          class="btn btn-primary"
+                          style="padding: 0.5rem 1rem; font-size: 0.875rem;"
+                          onClick={_ => Signal.update(demoCount, n => n + 1)}>
+                          {"+ Increment"->Component.text}
+                        </button>
+                      </div>
+                    </div>,
+                  ]
+                // Tab 1: Batching
+                | 1 => [
+                    <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+                      <div>
+                        <div
+                          style="font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 0.375rem;">
+                          {"fullName (computed)"->Component.text}
+                        </div>
+                        <div
+                          style="font-size: 1.75rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text-accent);">
+                          {Component.textSignal(() => Signal.get(fullName))}
+                        </div>
+                      </div>
+                      <div>
+                        <div
+                          style="font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 0.375rem;">
+                          {"Re-computations"->Component.text}
+                        </div>
+                        <div
+                          style="font-size: 1.75rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text-primary);">
+                          {Component.textSignal(() => Signal.get(renderCount)->Int.toString)}
+                        </div>
+                      </div>
+                      <div
+                        style="display: flex; flex-direction: column; gap: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border-default);">
+                        <div
+                          style="font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 0.25rem;">
+                          {"Update without batching (2 re-computations):"->Component.text}
+                        </div>
+                        <button
+                          class="btn btn-ghost"
+                          style="padding: 0.5rem 1rem; font-size: 0.8125rem;"
+                          onClick={_ => {
+                            Signal.set(firstName, "Jane")
+                            Signal.set(lastName, "Smith")
+                            Signal.update(
+                              batchLog,
+                              arr =>
+                                Array.concat(arr, ["Set firstName, then lastName (2 updates)"]),
+                            )
+                          }}>
+                          {"Set Jane Smith (unbatched)"->Component.text}
+                        </button>
+                        <div
+                          style="font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 0.25rem;">
+                          {"Update with batching (1 re-computation):"->Component.text}
+                        </div>
+                        <button
+                          class="btn btn-primary"
+                          style="padding: 0.5rem 1rem; font-size: 0.8125rem;"
+                          onClick={_ => {
+                            Signal.batch(() => {
+                              Signal.set(firstName, "John")
+                              Signal.set(lastName, "Doe")
+                            })
+                            Signal.update(
+                              batchLog,
+                              arr => Array.concat(arr, ["Batched set John Doe (1 update)"]),
+                            )
+                          }}>
+                          {"Set John Doe (batched)"->Component.text}
+                        </button>
+                      </div>
+                    </div>,
+                  ]
+                // Tab 2: Untracked Reads
+                | _ => [
+                    <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+                      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                          <div
+                            style="font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 0.375rem;">
+                            {"tracked"->Component.text}
+                          </div>
+                          <div
+                            style="font-size: 1.75rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text-primary);">
+                            {Component.textSignal(() => Signal.get(trackedVal)->Int.toString)}
+                          </div>
+                        </div>
+                        <div>
+                          <div
+                            style="font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 0.375rem;">
+                            {"untracked"->Component.text}
+                          </div>
+                          <div
+                            style="font-size: 1.75rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text-primary);">
+                            {Component.textSignal(() => Signal.get(untrackedVal)->Int.toString)}
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <div
+                          style="font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 0.375rem;">
+                          {"result (tracked + untracked)"->Component.text}
+                        </div>
+                        <div
+                          style="font-size: 2rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text-accent);">
+                          {Component.textSignal(() => Signal.get(trackedResult)->Int.toString)}
+                        </div>
+                      </div>
+                      <div
+                        style="display: flex; flex-direction: column; gap: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border-default);">
+                        <div style="display: flex; gap: 0.75rem;">
+                          <button
+                            class="btn btn-primary"
+                            style="padding: 0.5rem 1rem; font-size: 0.8125rem;"
+                            onClick={_ => {
+                              Signal.update(trackedVal, n => n + 1)
+                              Signal.update(
+                                untrackedLog,
+                                arr =>
+                                  Array.concat(arr, ["tracked++ -> result updates"]),
+                              )
+                            }}>
+                            {"tracked + 1"->Component.text}
+                          </button>
+                          <button
+                            class="btn btn-ghost"
+                            style="padding: 0.5rem 1rem; font-size: 0.8125rem;"
+                            onClick={_ => {
+                              Signal.update(untrackedVal, n => n + 10)
+                              Signal.update(
+                                untrackedLog,
+                                arr =>
+                                  Array.concat(
+                                    arr,
+                                    ["untracked+10 -> result unchanged!"],
+                                  ),
+                              )
+                            }}>
+                            {"untracked + 10"->Component.text}
+                          </button>
+                        </div>
+                        <div
+                          style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.5; margin-top: 0.25rem;">
+                          {"Try it: changing 'tracked' updates the result, but changing 'untracked' does not \u2014 because it was read inside Signal.untrack()."
+                          ->Component.text}
+                        </div>
+                      </div>
+                    </div>,
+                  ]
+                }
+              }),
+            )}
           </div>
         </div>
       </div>
