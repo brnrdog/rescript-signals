@@ -8,15 +8,24 @@ external setHtmlAttribute: (string, string) => unit = "setAttribute"
 @val @scope("window") external addEventListener: (string, 'a) => unit = "addEventListener"
 @val @scope("window") external removeEventListener: (string, 'a) => unit = "removeEventListener"
 
+// ---- SSR guard ----
+let isBrowser: bool = %raw(`typeof window !== "undefined"`)
+
 // ---- Theme management ----
 let initialTheme = {
-  switch getItem("rescript-signals-theme")->Nullable.toOption {
-  | Some("light") => "light"
-  | _ => "dark"
+  if isBrowser {
+    switch getItem("rescript-signals-theme")->Nullable.toOption {
+    | Some("light") => "light"
+    | _ => "dark"
+    }
+  } else {
+    "dark"
   }
 }
 
-let _ = setHtmlAttribute("data-theme", initialTheme)
+let _ = if isBrowser {
+  setHtmlAttribute("data-theme", initialTheme)
+}
 
 let theme = Signal.make(initialTheme)
 
