@@ -40,7 +40,7 @@
   "bugs": {
     "url": "https://github.com/brnrdog/rescript-signals/issues"
   },
-  "homepage": "https://github.com/brnrdog/rescript-signals#readme",
+  "homepage": "https://brnrdog.github.io/rescript-signals/",
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^20.0.0",
