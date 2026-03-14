@@ -46,26 +46,36 @@ async function prerender() {
   console.log(`Pre-rendering ${routes.length} routes...\n`)
 
   for (const route of routes) {
-    // Render the app HTML for this route
-    const appHtml = render(route)
+    try {
+      // Render the app HTML for this route
+      const appHtml = render(route)
 
-    // Inject into the template
-    const html = template.replace('<!--ssr-outlet-->', appHtml)
+      // Inject into the template
+      const html = template.replace('<!--ssr-outlet-->', appHtml)
 
-    // Write to the correct directory structure
-    // e.g., "/" → build/client/index.html (already exists, overwrite)
-    //        "/getting-started" → build/client/getting-started/index.html
-    const filePath = route === '/'
-      ? path.join(buildDir, 'index.html')
-      : path.join(buildDir, route, 'index.html')
+      // Write to the correct directory structure
+      // e.g., "/" → build/client/index.html (already exists, overwrite)
+      //        "/getting-started" → build/client/getting-started/index.html
+      const filePath = route === '/'
+        ? path.join(buildDir, 'index.html')
+        : path.join(buildDir, route, 'index.html')
 
-    // Ensure directory exists
-    const dir = path.dirname(filePath)
-    fs.mkdirSync(dir, { recursive: true })
+      // Ensure directory exists
+      const dir = path.dirname(filePath)
+      fs.mkdirSync(dir, { recursive: true })
 
-    fs.writeFileSync(filePath, html)
-    console.log(`  ${route} → ${path.relative(buildDir, filePath)}`)
+      fs.writeFileSync(filePath, html)
+      console.log(`  ${route} → ${path.relative(buildDir, filePath)}`)
+    } catch (err) {
+      console.warn(`  ${route} → SKIPPED (${err.message})`)
+    }
   }
+
+  // Copy index.html as 404.html so GitHub Pages serves the SPA shell
+  // for unmatched routes, allowing the client-side router to handle them
+  const notFoundPath = path.join(buildDir, '404.html')
+  fs.copyFileSync(path.join(buildDir, 'index.html'), notFoundPath)
+  console.log(`  404.html → ${path.relative(buildDir, notFoundPath)}`)
 
   console.log('\nPre-rendering complete!')
 }
