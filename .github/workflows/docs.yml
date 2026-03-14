@@ -35,11 +35,7 @@ jobs:
         working-directory: docs-website
         run: npm ci
 
-      - name: Build ReScript
-        working-directory: docs-website
-        run: npm run res:build
-
-      - name: Build Vite
+      - name: Build
         working-directory: docs-website
         run: npm run build
 
@@ -49,7 +45,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs-website/dist
+          path: docs-website/build/client
 
   deploy:
     name: Deploy
