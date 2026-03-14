@@ -12,6 +12,21 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&family=Geist+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 </head>
 <body>
+  <!-- SPA redirect decoder for GitHub Pages (counterpart to 404.html) -->
+  <script>
+    (function() {
+      var redirect = window.location.search.match(/^\?\/(.*)/);
+      if (redirect) {
+        var decoded = redirect[1].split('&').map(function(s) {
+          return s.replace(/~and~/g, '&');
+        }).join('?');
+        var basePath = '/rescript-signals';
+        window.history.replaceState(null, '',
+          basePath + '/' + decoded + window.location.hash
+        );
+      }
+    })();
+  </script>
   <a href="#main-content" class="skip-to-content">Skip to content</a>
   <div id="app"><!--ssr-outlet--></div>
   <script type="module" src="/src/Main.res.mjs"></script>
