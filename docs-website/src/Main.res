@@ -6,4 +6,4 @@ open Xote
 module Website = Website
 
 Router.init(~basePath="/rescript-signals", ())
-Component.mountById(<Website.App />, "app")
+Hydration.hydrateById(() => <Website.App />, "app")
