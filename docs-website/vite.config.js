@@ -3,7 +3,7 @@ import { defineConfig } from "vite"
 export default defineConfig({
   base: "/rescript-signals/",
   build: {
-    outDir: "dist",
+    outDir: "build/client",
     emptyOutDir: true,
   },
   server: {

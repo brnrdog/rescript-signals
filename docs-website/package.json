@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "rescript -w & vite",
-    "build": "rescript && vite build",
+    "build": "npm run res:build && npm run build:client && npm run build:server && npm run build:prerender",
+    "build:client": "vite build",
+    "build:server": "vite build --ssr src/EntryServer.res.mjs --outDir build/server",
+    "build:prerender": "node scripts/prerender.mjs",
     "preview": "vite preview",
     "res:build": "rescript",
     "res:watch": "rescript -w",
