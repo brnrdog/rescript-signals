@@ -28,7 +28,8 @@ const routes = [
 // Suppress expected SSR errors from client-only code
 process.on('uncaughtException', (err) => {
   if (err.message?.includes('document is not defined') ||
-      err.message?.includes('window is not defined')) {
+      err.message?.includes('window is not defined') ||
+      err.message?.includes('localStorage is not defined')) {
     return
   }
   console.error('Uncaught exception:', err)
