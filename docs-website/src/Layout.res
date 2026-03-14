@@ -161,56 +161,54 @@ module SearchModal = {
                         let items = Signal.get(filteredItems)
                         let idx = Signal.get(selectedIndex)
                         if Array.length(items) == 0 {
-                          [
-                            <div class="search-empty">
-                              {Component.text("No results found.")}
-                            </div>,
-                          ]
+                          [<div class="search-empty"> {Component.text("No results found.")} </div>]
                         } else {
                           let currentSection = ref("")
                           let globalIdx = ref(0)
-                          items->Array.flatMap(item => {
-                            let nodes = []
-                            if currentSection.contents != item.section {
-                              currentSection := item.section
+                          items->Array.flatMap(
+                            item => {
+                              let nodes = []
+                              if currentSection.contents != item.section {
+                                currentSection := item.section
+                                nodes
+                                ->Array.push(
+                                  <div class="search-group-label">
+                                    {Component.text(item.section)}
+                                  </div>,
+                                )
+                                ->ignore
+                              }
+                              let myIdx = globalIdx.contents
+                              let isActive = myIdx == idx
+                              let cn = "search-result-item" ++ (isActive ? " active" : "")
                               nodes
                               ->Array.push(
-                                <div class="search-group-label">
-                                  {Component.text(item.section)}
-                                </div>,
+                                Component.element(
+                                  "div",
+                                  ~attrs=[Component.attr("class", cn)],
+                                  ~events=[
+                                    (
+                                      "click",
+                                      _ => {
+                                        Router.push(item.path, ())
+                                        closeSearch()
+                                        Signal.set(query, "")
+                                      },
+                                    ),
+                                  ],
+                                  ~children=[
+                                    <div class="search-result-title">
+                                      {Component.text(item.title)}
+                                    </div>,
+                                  ],
+                                  (),
+                                ),
                               )
                               ->ignore
-                            }
-                            let myIdx = globalIdx.contents
-                            let isActive = myIdx == idx
-                            let cn = "search-result-item" ++ (isActive ? " active" : "")
-                            nodes
-                            ->Array.push(
-                              Component.element(
-                                "div",
-                                ~attrs=[Component.attr("class", cn)],
-                                ~events=[
-                                  (
-                                    "click",
-                                    _ => {
-                                      Router.push(item.path, ())
-                                      closeSearch()
-                                      Signal.set(query, "")
-                                    },
-                                  ),
-                                ],
-                                ~children=[
-                                  <div class="search-result-title">
-                                    {Component.text(item.title)}
-                                  </div>,
-                                ],
-                                (),
-                              ),
-                            )
-                            ->ignore
-                            globalIdx := myIdx + 1
-                            nodes
-                          })
+                              globalIdx := myIdx + 1
+                              nodes
+                            },
+                          )
                         }
                       }),
                     )}
@@ -259,9 +257,7 @@ module Header = {
             {Router.link(
               ~to="/",
               ~attrs=[Component.attr("class", "header-logo-link")],
-              ~children=[
-                <span> {Component.text("rescript-signals")} </span>,
-              ],
+              ~children=[<span> {Component.text("rescript-signals")} </span>],
               (),
             )}
             <nav class="header-nav">
@@ -390,22 +386,16 @@ module Footer = {
             <h4> {Component.text("Docs")} </h4>
             <ul>
               <li>
-                {Router.link(~to="/getting-started", ~children=[Component.text("Getting Started")], ())}
-              </li>
-              <li>
                 {Router.link(
-                  ~to="/api/signal",
-                  ~children=[Component.text("API Reference")],
+                  ~to="/getting-started",
+                  ~children=[Component.text("Getting Started")],
                   (),
                 )}
               </li>
               <li>
-                {Router.link(
-                  ~to="/examples",
-                  ~children=[Component.text("Examples")],
-                  (),
-                )}
+                {Router.link(~to="/api/signal", ~children=[Component.text("API Reference")], ())}
               </li>
+              <li> {Router.link(~to="/examples", ~children=[Component.text("Examples")], ())} </li>
             </ul>
           </div>
           <div class="footer-col">
@@ -437,8 +427,8 @@ module Footer = {
                 </a>
               </li>
               <li>
-                <a href="https://github.com/brnrdog/xote" target="_blank">
-                  {Component.text("Xote")}
+                <a href="https://brnrdog.github.io/xote/" target="_blank">
+                  {Component.text("xote")}
                 </a>
               </li>
             </ul>
@@ -447,7 +437,8 @@ module Footer = {
         <div class="footer-bottom">
           <div> {Component.text(`Copyright \u00A9 ${year} Bernardo Gurgel. MIT License.`)} </div>
           <div class="footer-bottom-right">
-            {Component.text("Built with rescript-signals")}
+            {Component.text("Built with ")}
+            <a href="https://brnrdog.github.io/xote/" target="_blank"> {Component.text("xote")} </a>
           </div>
         </div>
       </div>
