@@ -45,29 +45,46 @@ async function prerender() {
 
   console.log(`Pre-rendering ${routes.length} routes...\n`)
 
+  let rendered = 0
+  let failed = 0
+
   for (const route of routes) {
-    // Render the app HTML for this route
-    const appHtml = render(route)
+    try {
+      // Render the app HTML for this route
+      const appHtml = render(route)
 
-    // Inject into the template
-    const html = template.replace('<!--ssr-outlet-->', appHtml)
+      // Inject into the template
+      const html = template.replace('<!--ssr-outlet-->', appHtml)
 
-    // Write to the correct directory structure
-    // e.g., "/" → build/client/index.html (already exists, overwrite)
-    //        "/getting-started" → build/client/getting-started/index.html
-    const filePath = route === '/'
-      ? path.join(buildDir, 'index.html')
-      : path.join(buildDir, route, 'index.html')
+      // Write to the correct directory structure
+      // e.g., "/" → build/client/index.html (already exists, overwrite)
+      //        "/getting-started" → build/client/getting-started/index.html
+      const filePath = route === '/'
+        ? path.join(buildDir, 'index.html')
+        : path.join(buildDir, route, 'index.html')
 
-    // Ensure directory exists
-    const dir = path.dirname(filePath)
-    fs.mkdirSync(dir, { recursive: true })
+      // Ensure directory exists
+      const dir = path.dirname(filePath)
+      fs.mkdirSync(dir, { recursive: true })
 
-    fs.writeFileSync(filePath, html)
-    console.log(`  ${route} → ${path.relative(buildDir, filePath)}`)
+      fs.writeFileSync(filePath, html)
+      console.log(`  ✓ ${route} → ${path.relative(buildDir, filePath)}`)
+      rendered++
+    } catch (err) {
+      // Write the template without SSR content as a fallback so the route
+      // still works via client-side rendering on page refresh.
+      const filePath = route === '/'
+        ? path.join(buildDir, 'index.html')
+        : path.join(buildDir, route, 'index.html')
+      const dir = path.dirname(filePath)
+      fs.mkdirSync(dir, { recursive: true })
+      fs.writeFileSync(filePath, template)
+      console.warn(`  ~ ${route} → ${path.relative(buildDir, filePath)} (client-only fallback: ${err.message})`)
+      failed++
+    }
   }
 
-  console.log('\nPre-rendering complete!')
+  console.log(`\nPre-rendering complete! (${rendered} rendered, ${failed} skipped)`)
 }
 
 prerender()
