@@ -171,7 +171,6 @@ module DerivedStateExample = {
 let make = () => {
   <div>
     <div>
-      <Typography text={static("Examples")} variant={H1} />
       <Typography
         text={static("Interactive examples demonstrating rescript-signals patterns.")}
         variant={Lead}

@@ -4,7 +4,6 @@ open Basefn
 @jsx.component
 let make = () => {
   <div>
-    <Typography text={static("Getting Started")} variant={H1} />
     <Typography
       text={static("Learn how to install and use rescript-signals in your project.")}
       variant={Lead}
