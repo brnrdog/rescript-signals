@@ -5,7 +5,6 @@ open Basefn
 @jsx.component
 let make = () => {
   <div>
-    <Typography text={static("Signal")} variant={H1} />
     <Typography
       text={static("The core reactive primitive for holding mutable state.")}
       variant={Lead}

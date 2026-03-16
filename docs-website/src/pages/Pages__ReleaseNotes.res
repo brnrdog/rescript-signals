@@ -73,7 +73,6 @@ let make = () => {
 
   <div>
     <div>
-      <Typography text={static("Release Notes")} variant={H1} />
       <Typography
         text={static("View the changelog and release history for rescript-signals.")}
         variant={Lead}

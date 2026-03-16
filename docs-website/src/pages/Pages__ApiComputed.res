@@ -5,7 +5,6 @@ open Basefn
 @jsx.component
 let make = () => {
   <div>
-    <Typography text={static("Computed")} variant={H1} />
     <Typography
       text={static("Derived values that automatically update when their dependencies change.")}
       variant={Lead}

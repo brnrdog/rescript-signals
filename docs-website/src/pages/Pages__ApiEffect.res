@@ -5,7 +5,6 @@ open Basefn
 @jsx.component
 let make = () => {
   <div>
-    <Typography text={static("Effect")} variant={H1} />
     <Typography
       text={static("Side effects that automatically re-run when their dependencies change.")}
       variant={Lead}
