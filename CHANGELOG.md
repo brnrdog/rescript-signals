@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file. See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## <small>1.3.4 (2026-03-29)</small>
+
+* fix: strip dev sources from rescript.json during npm pack (#20) ([be26da0](https://github.com/brnrdog/rescript-signals/commit/be26da0)), closes [#20](https://github.com/brnrdog/rescript-signals/issues/20)
+* docs: add active page highlighting in sidebar ([8240b6d](https://github.com/brnrdog/rescript-signals/commit/8240b6d))
+* docs: add breadcrumbs navigation ([ef06eef](https://github.com/brnrdog/rescript-signals/commit/ef06eef))
+* docs: add copy-to-clipboard button to code blocks ([ff33fc4](https://github.com/brnrdog/rescript-signals/commit/ff33fc4))
+* docs: add docs-website for GitHub Pages ([158a932](https://github.com/brnrdog/rescript-signals/commit/158a932))
+* docs: add Edit on GitHub links to all pages ([cfa5933](https://github.com/brnrdog/rescript-signals/commit/cfa5933))
+* docs: add Previous/Next page navigation ([62a0784](https://github.com/brnrdog/rescript-signals/commit/62a0784))
+* docs: add scroll to top button ([63e3ed5](https://github.com/brnrdog/rescript-signals/commit/63e3ed5))
+* docs: add search functionality to docs website ([20fa316](https://github.com/brnrdog/rescript-signals/commit/20fa316))
+* docs: enable SSR prerendering for docs website (#15) ([975185c](https://github.com/brnrdog/rescript-signals/commit/975185c)), closes [#15](https://github.com/brnrdog/rescript-signals/issues/15)
+* docs: fix duplicate headers on docs pages (#19) ([0d8b2d6](https://github.com/brnrdog/rescript-signals/commit/0d8b2d6)), closes [#19](https://github.com/brnrdog/rescript-signals/issues/19)
+* docs: fix routing for GitHub Pages by setting router basePath ([7b7f4ae](https://github.com/brnrdog/rescript-signals/commit/7b7f4ae))
+* docs: fix SSR and add GitHub Pages SPA routing support (#17) ([e2f039c](https://github.com/brnrdog/rescript-signals/commit/e2f039c)), closes [#17](https://github.com/brnrdog/rescript-signals/issues/17)
+* docs: fix SSR compatibility by guarding browser APIs (#16) ([962c09f](https://github.com/brnrdog/rescript-signals/commit/962c09f)), closes [#16](https://github.com/brnrdog/rescript-signals/issues/16)
+* docs: fix vite config ([bcd6b9a](https://github.com/brnrdog/rescript-signals/commit/bcd6b9a))
+* docs: footer adjustments ([2b8a42f](https://github.com/brnrdog/rescript-signals/commit/2b8a42f))
+* docs: improve docs-website with conditional sidebar and release notes ([44fba46](https://github.com/brnrdog/rescript-signals/commit/44fba46))
+* docs: redesign homepage and improve documentation styling (#13) ([90161c3](https://github.com/brnrdog/rescript-signals/commit/90161c3)), closes [#13](https://github.com/brnrdog/rescript-signals/issues/13) [#0d1117](https://github.com/brnrdog/rescript-signals/issues/0d1117)
+* docs: redesign website with xote-style layout and purple theme (#14) ([cb20cfc](https://github.com/brnrdog/rescript-signals/commit/cb20cfc)), closes [#14](https://github.com/brnrdog/rescript-signals/issues/14)
+* docs: switch from mountById to hydrateById for SSR ([7712e01](https://github.com/brnrdog/rescript-signals/commit/7712e01)), closes [#app](https://github.com/brnrdog/rescript-signals/issues/app)
+* docs: update README.md ([73063e7](https://github.com/brnrdog/rescript-signals/commit/73063e7))
+* docs: update README.md ([4356082](https://github.com/brnrdog/rescript-signals/commit/4356082))
+* docs: update xote and basefn ([013caa0](https://github.com/brnrdog/rescript-signals/commit/013caa0))
+* chore: add homepage link ([b15fc5c](https://github.com/brnrdog/rescript-signals/commit/b15fc5c))
+* chore: save benchmarks results in json files ([88221c7](https://github.com/brnrdog/rescript-signals/commit/88221c7))
+* chore: update zekr ([e187e69](https://github.com/brnrdog/rescript-signals/commit/e187e69))
+* ci: add GitHub Pages deployment workflow ([6d5aec8](https://github.com/brnrdog/rescript-signals/commit/6d5aec8))
+* test: replace TestFramework with Zekr ([34d339c](https://github.com/brnrdog/rescript-signals/commit/34d339c))
+
 ## <small>1.3.3 (2026-01-21)</small>
 
 * perf: unify computed observer and subs into single structure ([f5d0ad1](https://github.com/brnrdog/rescript-signals/commit/f5d0ad1))
