@@ -23,6 +23,8 @@
     "build": "rescript",
     "clean": "rescript clean",
     "prepare": "husky",
+    "prepack": "node scripts/prepack.js",
+    "postpack": "node scripts/postpack.js",
     "semantic-release": "semantic-release"
   },
   "repository": {
