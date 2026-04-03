@@ -103,7 +103,8 @@ Computed.get(doubled) // 10`}
       code={`let count = Signal.make(0)
 Effect.run(() => {
   Console.log(\`Count changed to: \${Signal.get(count)->Int.toString}\`)
-})`}
+  None
+})->Effect.ignore`}
     />
     <EditOnGitHub pageName="Pages__GettingStarted" />
   </div>

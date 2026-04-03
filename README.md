@@ -398,6 +398,9 @@ let run: (
   unit => option<unit => unit>,
   ~name: option<string>=?
 ) => disposer
+
+// Discard the disposer for fire-and-forget effects
+let ignore: disposer => unit
 ```
 
 **Parameters:**
@@ -405,6 +408,8 @@ let run: (
 - `~name`: Optional name for debugging
 
 **Returns:** A disposer object with a `dispose()` method
+
+**`Effect.ignore`**: Explicitly discards the disposer for fire-and-forget effects where manual disposal isn't needed.
 
 **Note:** Effects run immediately and re-run whenever tracked dependencies change. Cleanup functions run before re-execution and on disposal.
 

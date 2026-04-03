@@ -59,3 +59,5 @@ let run = (fn: unit => option<unit => unit>, ~name: option<string>=?): disposer 
 
   {dispose: dispose}
 }
+
+let ignore = (_: disposer): unit => ()

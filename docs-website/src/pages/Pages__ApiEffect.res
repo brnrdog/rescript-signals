@@ -102,6 +102,23 @@ disposer.dispose()
 // Future changes won't trigger the effect
 Signal.set(count, 100) // Nothing logged`}
     />
+    <div class="heading-anchor" id="effect-ignore">
+      <Typography text={static("Effect.ignore(disposer)")} variant={H3} />
+      <a class="anchor-link" href="#effect-ignore"> {"#"->Component.text} </a>
+    </div>
+    <Typography
+      text={static(
+        "Explicitly discards the disposer for fire-and-forget effects where you don't need to manually stop the effect.",
+      )}
+    />
+    <CodeBlock
+      language="rescript"
+      code={`// Fire-and-forget effect — disposer explicitly discarded
+Effect.run(() => {
+  Console.log(Signal.get(count))
+  None
+})->Effect.ignore`}
+    />
     <Separator />
     <div class="heading-anchor" id="common-use-cases">
       <Typography text={static("Common Use Cases")} variant={H2} />
@@ -119,7 +136,7 @@ Effect.run(() => {
   let el = Document.getElementById("title")
   el->Element.setTextContent(Signal.get(title))
   None
-})`}
+})->Effect.ignore`}
     />
     <div class="heading-anchor" id="event-listeners">
       <Typography text={static("Event Listeners")} variant={H3} />
@@ -137,7 +154,7 @@ Effect.run(() => {
   } else {
     None
   }
-})`}
+})->Effect.ignore`}
     />
     <div class="heading-anchor" id="timers">
       <Typography text={static("Timers")} variant={H3} />
@@ -151,7 +168,7 @@ Effect.run(() => {
   let ms = Signal.get(interval)
   let id = setInterval(() => Console.log("Tick!"), ms)
   Some(() => clearInterval(id))
-})`}
+})->Effect.ignore`}
     />
     <div class="heading-anchor" id="local-storage">
       <Typography text={static("Local Storage Sync")} variant={H3} />
@@ -165,7 +182,7 @@ Effect.run(() => {
   let current = Signal.get(theme)
   LocalStorage.setItem("theme", current)
   None
-})`}
+})->Effect.ignore`}
     />
     <EditOnGitHub pageName="Pages__ApiEffect" />
   </div>
