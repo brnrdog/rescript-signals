@@ -133,7 +133,7 @@ let tests = suite(
       let show = Signal.make(true)
       let result = ref(0)
 
-      let disposer = Effect.run(() => {
+      let disposer = Effect.runWithDisposer(() => {
         if Signal.get(show) {
           result := Signal.get(doubled)
         }
