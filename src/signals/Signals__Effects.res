@@ -4,7 +4,7 @@ module Scheduler = Signals__Scheduler
 
 type disposer = {dispose: unit => unit}
 
-let run = (fn: unit => option<unit => unit>, ~name: option<string>=?): disposer => {
+let runWithDisposer = (fn: unit => option<unit => unit>, ~name: option<string>=?): disposer => {
   let observerId = Id.make()
   let cleanup: ref<option<unit => unit>> = ref(None)
 
@@ -58,4 +58,8 @@ let run = (fn: unit => option<unit => unit>, ~name: option<string>=?): disposer 
   }
 
   {dispose: dispose}
+}
+
+let run = (fn: unit => option<unit => unit>, ~name: option<string>=?): unit => {
+  let _ = runWithDisposer(fn, ~name?)
 }

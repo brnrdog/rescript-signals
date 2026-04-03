@@ -44,16 +44,13 @@ let count = Signal.make(0)
 let doubled = Computed.make(() => Signal.get(count) * 2)
 
 // Run a side effect (executes when dependencies change)
-let disposer = Effect.run(() => {
+Effect.run(() => {
   Console.log(`Count: ${Int.toString(Signal.get(count))}, Doubled: ${Int.toString(Signal.get(doubled))}`)
   None
 })
 
 // Update the signal
 Signal.set(count, 5) // Logs: "Count: 5, Doubled: 10"
-
-// Clean up when done
-disposer.dispose()
 ```
 
 ## Usage
@@ -167,13 +164,29 @@ Effects run side effects in response to signal changes. They execute immediately
 ```rescript
 let count = Signal.make(0)
 
-let disposer = Effect.run(() => {
+// Fire-and-forget effect
+Effect.run(() => {
   Console.log(`Count is: ${Int.toString(Signal.get(count))}`)
   None
 })
 
 Signal.set(count, 1) // Logs: "Count is: 1"
-disposer.dispose()
+```
+
+#### Effect with Disposer
+
+Use `Effect.runWithDisposer` when you need to manually stop the effect:
+
+```rescript
+let count = Signal.make(0)
+
+let disposer = Effect.runWithDisposer(() => {
+  Console.log(`Count is: ${Int.toString(Signal.get(count))}`)
+  None
+})
+
+Signal.set(count, 1) // Logs: "Count is: 1"
+disposer.dispose() // Stop tracking
 ```
 
 #### Effect with Cleanup
@@ -183,7 +196,7 @@ Effects can return a cleanup function that runs before the next execution and on
 ```rescript
 let url = Signal.make("/api/data")
 
-let disposer = Effect.run(() => {
+let disposer = Effect.runWithDisposer(() => {
   let currentUrl = Signal.get(url)
 
   // Start async operation
@@ -203,7 +216,7 @@ disposer.dispose() // Final cleanup
 #### Named Effects for Debugging
 
 ```rescript
-let disposer = Effect.run(
+Effect.run(
   () => {
     Console.log(Signal.get(count))
     None
@@ -221,7 +234,7 @@ let showDetails = Signal.make(false)
 let userData = Signal.make({name: "John"})
 let adminData = Signal.make({role: "admin"})
 
-let disposer = Effect.run(() => {
+Effect.run(() => {
   if Signal.get(showDetails) {
     Console.log(Signal.get(userData)) // Tracked
   } else {
@@ -243,7 +256,7 @@ let firstName = Signal.make("John")
 let lastName = Signal.make("Doe")
 let runCount = ref(0)
 
-let disposer = Effect.run(() => {
+Effect.run(() => {
   Console.log(Signal.get(firstName) ++ " " ++ Signal.get(lastName))
   runCount := runCount.contents + 1
   None
@@ -275,7 +288,7 @@ Read signal values without creating dependencies. Useful when you need a value b
 let count = Signal.make(0)
 let threshold = Signal.make(10)
 
-let disposer = Effect.run(() => {
+Effect.run(() => {
   let current = Signal.get(count)
   let limit = Signal.untrack(() => Signal.get(threshold))
 
@@ -393,8 +406,14 @@ Run side effects in response to signal changes.
 ```rescript
 type disposer = {dispose: unit => unit}
 
-// Run an effect
+// Run a fire-and-forget effect
 let run: (
+  unit => option<unit => unit>,
+  ~name: option<string>=?
+) => unit
+
+// Run an effect with manual disposal
+let runWithDisposer: (
   unit => option<unit => unit>,
   ~name: option<string>=?
 ) => disposer
@@ -404,7 +423,9 @@ let run: (
 - `fn`: Effect function to execute. Can return `None` or `Some(cleanupFn)`
 - `~name`: Optional name for debugging
 
-**Returns:** A disposer object with a `dispose()` method
+**`Effect.run`**: Fire-and-forget effect. Returns `unit`.
+
+**`Effect.runWithDisposer`**: Returns a disposer object with a `dispose()` method for manual cleanup.
 
 **Note:** Effects run immediately and re-run whenever tracked dependencies change. Cleanup functions run before re-execution and on disposal.
 
@@ -428,7 +449,7 @@ let isValid = Computed.make(() => {
 })
 
 // Effect for auto-save
-let disposer = Effect.run(() => {
+Effect.run(() => {
   if Signal.get(isValid) {
     saveToLocalStorage(Signal.get(formData))
   }
@@ -443,7 +464,7 @@ let userId = Signal.make(1)
 let userData = Signal.make(None)
 let isLoading = Signal.make(false)
 
-let disposer = Effect.run(() => {
+Effect.run(() => {
   let id = Signal.get(userId)
 
   Signal.set(isLoading, true)
@@ -503,7 +524,7 @@ let movePoint = (dx, dy, dz) => {
 }
 
 // Effect only runs once per movePoint call
-let disposer = Effect.run(() => {
+Effect.run(() => {
   Console.log(
     `Position: (${Int.toString(Signal.get(x))}, ${Int.toString(Signal.get(y))}, ${Int.toString(Signal.get(z))})`
   )
@@ -520,7 +541,7 @@ let config = Signal.make({theme: "dark", locale: "en"})
 // Frequently changing data
 let data = Signal.make([])
 
-let disposer = Effect.run(() => {
+Effect.run(() => {
   let items = Signal.get(data)
 
   // Read config without tracking—we'll manually refresh when config changes

@@ -84,7 +84,7 @@ let tests = suite(
       let c = Signal.make(0)
       let runCount = ref(0)
 
-      let disposer = Effect.run(() => {
+      let disposer = Effect.runWithDisposer(() => {
         let _ = Signal.get(a) + Signal.get(b) + Signal.get(c)
         runCount := runCount.contents + 1
         None
@@ -119,7 +119,7 @@ let tests = suite(
       let signal = Signal.make(0)
       let runCount = ref(0)
 
-      let disposer = Effect.run(() => {
+      let disposer = Effect.runWithDisposer(() => {
         let _ = Signal.get(signal)
         runCount := runCount.contents + 1
         None
@@ -161,7 +161,7 @@ let tests = suite(
       let untracked = Signal.make(10)
       let runCount = ref(0)
 
-      let disposer = Effect.run(() => {
+      let disposer = Effect.runWithDisposer(() => {
         let _ = Signal.get(tracked)
         let _ = Signal.untrack(() => Signal.get(untracked))
         runCount := runCount.contents + 1
@@ -197,7 +197,7 @@ let tests = suite(
       let c = Signal.make(3)
       let runCount = ref(0)
 
-      let disposer = Effect.run(() => {
+      let disposer = Effect.runWithDisposer(() => {
         let _ = Signal.get(a)
         let _ = Signal.untrack(
           () => {

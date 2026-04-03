@@ -7,7 +7,7 @@ let tests = suite(
   [
     test("effect runs initially", () => {
       let runCount = ref(0)
-      let disposer = Effect.run(() => {
+      let disposer = Effect.runWithDisposer(() => {
         runCount := runCount.contents + 1
         None
       })
@@ -17,7 +17,7 @@ let tests = suite(
     test("effect runs when dependency changes", () => {
       let count = Signal.make(0)
       let runCount = ref(0)
-      let disposer = Effect.run(() => {
+      let disposer = Effect.runWithDisposer(() => {
         let _ = Signal.get(count)
         runCount := runCount.contents + 1
         None
@@ -30,7 +30,7 @@ let tests = suite(
       let a = Signal.make(1)
       let b = Signal.make(2)
       let sum = ref(0)
-      let disposer = Effect.run(() => {
+      let disposer = Effect.runWithDisposer(() => {
         sum := Signal.get(a) + Signal.get(b)
         None
       })
@@ -43,7 +43,7 @@ let tests = suite(
     test("effect cleanup runs on re-execution", () => {
       let count = Signal.make(0)
       let cleanupCount = ref(0)
-      let disposer = Effect.run(() => {
+      let disposer = Effect.runWithDisposer(() => {
         let _ = Signal.get(count)
         Some(() => cleanupCount := cleanupCount.contents + 1)
       })
@@ -54,7 +54,7 @@ let tests = suite(
     }),
     test("effect cleanup runs on disposal", () => {
       let cleaned = ref(false)
-      let disposer = Effect.run(() => Some(() => cleaned := true))
+      let disposer = Effect.runWithDisposer(() => Some(() => cleaned := true))
       disposer.dispose()
       assertTrue(cleaned.contents, ~message="Cleanup should run on disposal")
     }),
@@ -63,7 +63,7 @@ let tests = suite(
       let a = Signal.make(1)
       let b = Signal.make(2)
       let result = ref(0)
-      let disposer = Effect.run(() => {
+      let disposer = Effect.runWithDisposer(() => {
         result := if Signal.get(toggle) {
           Signal.get(a)
         } else {
@@ -81,12 +81,12 @@ let tests = suite(
       let outer = Signal.make(0)
       let outerRuns = ref(0)
       let innerRuns = ref(0)
-      let disposer1 = Effect.run(() => {
+      let disposer1 = Effect.runWithDisposer(() => {
         let _ = Signal.get(outer)
         outerRuns := outerRuns.contents + 1
         None
       })
-      let disposer2 = Effect.run(() => {
+      let disposer2 = Effect.runWithDisposer(() => {
         let _ = Signal.get(outer)
         innerRuns := innerRuns.contents + 1
         None
@@ -103,7 +103,7 @@ let tests = suite(
       let base = Signal.make(2)
       let doubled = Computed.make(() => Signal.get(base) * 2)
       let result = ref(0)
-      let disposer = Effect.run(() => {
+      let disposer = Effect.runWithDisposer(() => {
         result := Signal.get(doubled)
         None
       })
@@ -116,7 +116,7 @@ let tests = suite(
     test("effect disposal stops tracking", () => {
       let count = Signal.make(0)
       let runCount = ref(0)
-      let disposer = Effect.run(() => {
+      let disposer = Effect.runWithDisposer(() => {
         let _ = Signal.get(count)
         runCount := runCount.contents + 1
         None
@@ -134,7 +134,7 @@ let tests = suite(
     test("effect with array mutation tracking", () => {
       let items = Signal.make([1, 2, 3])
       let length = ref(0)
-      let disposer = Effect.run(() => {
+      let disposer = Effect.runWithDisposer(() => {
         length := Array.length(Signal.get(items))
         None
       })
@@ -148,7 +148,7 @@ let tests = suite(
       let tracked = Signal.make(1)
       let untracked = Signal.make(10)
       let runCount = ref(0)
-      let disposer = Effect.run(() => {
+      let disposer = Effect.runWithDisposer(() => {
         let _ = Signal.get(tracked)
         let _ = Signal.peek(untracked)
         runCount := runCount.contents + 1
@@ -165,7 +165,7 @@ let tests = suite(
       result
     }),
     test("multiple disposals are safe", () => {
-      let disposer = Effect.run(() => None)
+      let disposer = Effect.runWithDisposer(() => None)
       disposer.dispose()
       disposer.dispose()
       Pass

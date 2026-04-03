@@ -20,20 +20,44 @@ let make = () => {
     </div>
     <Typography
       text={static(
-        "Creates and immediately runs an effect. The effect re-runs whenever any signal or computed it reads changes.",
+        "Creates and immediately runs a fire-and-forget effect. The effect re-runs whenever any signal or computed it reads changes.",
       )}
     />
     <CodeBlock
       language="rescript"
       code={`let count = Signal.make(0)
 
-let disposer = Effect.run(() => {
+Effect.run(() => {
   Console.log(\`Count is: \${Signal.get(count)->Int.toString}\`)
+  None
 })
 
 // Logs: "Count is: 0"
 Signal.set(count, 1)
 // Logs: "Count is: 1"`}
+    />
+    <div class="heading-anchor" id="effect-run-with-disposer">
+      <Typography text={static("Effect.runWithDisposer(fn)")} variant={H3} />
+      <a class="anchor-link" href="#effect-run-with-disposer"> {"#"->Component.text} </a>
+    </div>
+    <Typography
+      text={static(
+        "Creates an effect and returns a disposer for manual cleanup. Use this when you need to stop the effect later.",
+      )}
+    />
+    <CodeBlock
+      language="rescript"
+      code={`let count = Signal.make(0)
+
+let disposer = Effect.runWithDisposer(() => {
+  Console.log(\`Count is: \${Signal.get(count)->Int.toString}\`)
+  None
+})
+
+Signal.set(count, 1)
+// Logs: "Count is: 1"
+
+disposer.dispose() // Stop the effect`}
     />
     <div class="heading-anchor" id="effect-run-named">
       <Typography text={static("Effect.run(~name, fn)")} variant={H3} />
@@ -44,6 +68,7 @@ Signal.set(count, 1)
       language="rescript"
       code={`Effect.run(~name="logger", () => {
   Console.log(Signal.get(count))
+  None
 })`}
     />
     <Separator />
@@ -85,12 +110,12 @@ Signal.set(count, 1)
     </div>
     <Typography
       text={static(
-        "Effect.run returns a disposer object. Call dispose() to stop the effect and run any cleanup function.",
+        "Effect.runWithDisposer returns a disposer object. Call dispose() to stop the effect and run any cleanup function.",
       )}
     />
     <CodeBlock
       language="rescript"
-      code={`let disposer = Effect.run(() => {
+      code={`let disposer = Effect.runWithDisposer(() => {
   Console.log(Signal.get(count))
   Some(() => Console.log("Cleanup!"))
 })
