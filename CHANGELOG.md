@@ -2,6 +2,45 @@
 
 All notable changes to this project will be documented in this file. See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.0.0 (2026-04-04)
+
+* feat!: make Effect.run fire-and-forget ([831f353](https://github.com/brnrdog/rescript-signals/commit/831f353))
+
+
+### BREAKING CHANGE
+
+* Effect.run now returns unit instead of
+disposer. If you need to manually dispose an effect, use
+Effect.runWithDisposer instead.
+
+Migration guide:
+
+Before:
+```rescript
+let disposer = Effect.run(() => {
+  Console.log(Signal.get(count))
+  None
+})
+disposer.dispose()
+```
+
+After:
+```rescript
+let disposer = Effect.runWithDisposer(() => {
+  Console.log(Signal.get(count))
+  None
+})
+disposer.dispose()
+```
+
+If you don't need the disposer, no changes are required:
+```rescript
+Effect.run(() => {
+  Console.log(Signal.get(count))
+  None
+})
+```
+
 ## <small>1.3.4 (2026-03-29)</small>
 
 * fix: strip dev sources from rescript.json during npm pack (#20) ([be26da0](https://github.com/brnrdog/rescript-signals/commit/be26da0)), closes [#20](https://github.com/brnrdog/rescript-signals/issues/20)
