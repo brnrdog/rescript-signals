@@ -1,5 +1,3 @@
-module Core = Signals__Core
-
 // Current execution context for computeds (subs IS the observer)
 let currentComputedSubs: ref<option<Core.subs>> = ref(None)
 
