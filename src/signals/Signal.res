@@ -1,7 +1,3 @@
-module Id = Signals__Id
-module Scheduler = Signals__Scheduler
-module Core = Signals__Core
-
 type t<'a> = {
   id: int,
   mutable value: 'a,

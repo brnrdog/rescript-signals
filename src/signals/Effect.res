@@ -1,7 +1,3 @@
-module Id = Signals__Id
-module Core = Signals__Core
-module Scheduler = Signals__Scheduler
-
 type disposer = {dispose: unit => unit}
 
 let runWithDisposer = (fn: unit => option<unit => unit>, ~name: option<string>=?): disposer => {

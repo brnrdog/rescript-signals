@@ -1,7 +1,3 @@
-module Id = Signals__Id
-module Signal = Signals__Signal
-module Core = Signals__Core
-module Scheduler = Signals__Scheduler
 
 let make = (compute: unit => 'a, ~name: option<string>=?): Signal.t<'a> => {
   let id = Id.make()
