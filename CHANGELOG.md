@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file. See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.1.0 (2026-04-07)
+
+* feat: use ReScript namespacing for Signals ([3e8b8bd](https://github.com/brnrdog/rescript-signals/commit/3e8b8bd))
+
 ## 2.0.0 (2026-04-04)
 
 * feat!: make Effect.run fire-and-forget ([831f353](https://github.com/brnrdog/rescript-signals/commit/831f353))
