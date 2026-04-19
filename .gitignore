@@ -1,7 +1,7 @@
 .DS_Store
 /node_modules/
-/lib/
-/dist/
+lib/
+dist/
 /benchmark-results/
 .bsb.lock
 .merlin

@@ -1,48 +1,13 @@
 {
-  "name": "rescript-signals",
-  "version": "2.1.0",
-  "description": "Reactive Signals primitives implemented in ReScript.",
-  "main": "./src/Signals.res.mjs",
-  "module": "./src/Signals.res.mjs",
-  "types": "./src/Signals.res.d.ts",
-  "files": [
-    "src/**/*.res",
-    "src/**/*.res.mjs",
-    "src/**/*.res.d.ts",
-    "lib/bs/src",
-    "lib/bs/build.ninja",
-    "lib/bs/compiler-info.json",
-    "rescript.json",
-    "CHANGELOG.md",
-    "README.md",
-    "LICENSE"
-  ],
+  "private": true,
+  "workspaces": ["packages/*"],
   "scripts": {
-    "test": "rescript && node tests/RunTests.res.mjs",
-    "watch": "rescript -w",
-    "build": "rescript",
-    "clean": "rescript clean",
-    "prepare": "husky",
-    "prepack": "node scripts/prepack.js",
-    "postpack": "node scripts/postpack.js",
-    "semantic-release": "semantic-release"
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces",
+    "clean": "npm run clean --workspaces",
+    "release": "npm run release --workspace=packages/rescript-signals && npm run release --workspace=packages/rescript-signals-react",
+    "prepare": "husky"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/brnrdog/rescript-signals.git"
-  },
-  "keywords": [
-    "rescript",
-    "signals",
-    "reactivity",
-    "state"
-  ],
-  "author": "Bernardo Gurgel <brnrdog@hey.com>",
-  "license": "SEE LICENSE IN LICENSE",
-  "bugs": {
-    "url": "https://github.com/brnrdog/rescript-signals/issues"
-  },
-  "homepage": "https://brnrdog.github.io/rescript-signals/",
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^20.0.0",
@@ -54,6 +19,7 @@
     "husky": "^9.1.7",
     "rescript": "^12.0.0",
     "semantic-release": "^25.0.2",
-    "zekr": "^1.2.0"
+    "semantic-release-monorepo": "^8.0.2",
+    "zekr": "^2.0.0"
   }
 }
