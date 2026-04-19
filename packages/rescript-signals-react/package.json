@@ -1,0 +1,47 @@
+{
+  "name": "rescript-signals-react",
+  "version": "0.1.0",
+  "description": "React adapter for rescript-signals using useSyncExternalStore.",
+  "type": "module",
+  "main": "./src/SignalsReact.res.mjs",
+  "module": "./src/SignalsReact.res.mjs",
+  "files": [
+    "src/**/*.res",
+    "src/**/*.res.mjs",
+    "src/**/*.res.d.ts",
+    "src/**/*.resi",
+    "lib/bs/src",
+    "lib/bs/build.ninja",
+    "lib/bs/compiler-info.json",
+    "rescript.json",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "rescript && node tests/SignalsReact_test.res.mjs",
+    "build": "rescript",
+    "clean": "rescript clean",
+    "prepack": "node scripts/prepack.js",
+    "postpack": "node scripts/postpack.js",
+    "release": "semantic-release -e semantic-release-monorepo"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0",
+    "@rescript/react": ">=0.13.0",
+    "rescript-signals": ">=2.0.0"
+  },
+  "devDependencies": {
+    "@rescript/react": "^0.13.1",
+    "jsdom": "^26.1.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "keywords": ["rescript", "signals", "react", "hooks"],
+  "author": "Bernardo Gurgel <brnrdog@hey.com>",
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brnrdog/rescript-signals.git",
+    "directory": "packages/rescript-signals-react"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "rescript-signals-react",
+  "namespace": "SignalsReact",
+  "sources": [
+    { "dir": "src", "subdirs": true },
+    { "dir": "tests", "type": "dev" }
+  ],
+  "package-specs": { "module": "esmodule", "in-source": true },
+  "suffix": ".res.mjs",
+  "jsx": { "version": 4, "mode": "automatic" },
+  "dependencies": ["@rescript/core", "@rescript/react", "rescript-signals"],
+  "dev-dependencies": ["zekr"],
+  "compiler-flags": ["-open RescriptCore"]
+}
