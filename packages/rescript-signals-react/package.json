@@ -1,6 +1,6 @@
 {
   "name": "rescript-signals-react",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "React adapter for rescript-signals using useSyncExternalStore.",
   "type": "module",
   "main": "./src/SignalsReact.res.mjs",
