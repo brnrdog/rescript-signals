@@ -1,20 +1,21 @@
 @@warning("-44")
 open Zekr
+open Types
 open Signals
 
-let tests = suite(
+let tests = Suite.make(
   "Effect Tests",
   [
-    test("effect runs initially", () => {
+    Test.make("effect runs initially", () => {
       let runCount = ref(0)
       let disposer = Effect.runWithDisposer(() => {
         runCount := runCount.contents + 1
         None
       })
       disposer.dispose()
-      assertEqual(runCount.contents, 1, ~message="Effect should run once initially")
+      Assert.equal(runCount.contents, 1, ~message="Effect should run once initially")
     }),
-    test("effect runs when dependency changes", () => {
+    Test.make("effect runs when dependency changes", () => {
       let count = Signal.make(0)
       let runCount = ref(0)
       let disposer = Effect.runWithDisposer(() => {
@@ -24,9 +25,9 @@ let tests = suite(
       })
       Signal.set(count, 1)
       disposer.dispose()
-      assertEqual(runCount.contents, 2, ~message="Effect should run again when signal changes")
+      Assert.equal(runCount.contents, 2, ~message="Effect should run again when signal changes")
     }),
-    test("effect with multiple dependencies", () => {
+    Test.make("effect with multiple dependencies", () => {
       let a = Signal.make(1)
       let b = Signal.make(2)
       let sum = ref(0)
@@ -34,13 +35,13 @@ let tests = suite(
         sum := Signal.get(a) + Signal.get(b)
         None
       })
-      let result1 = assertEqual(sum.contents, 3, ~message="Initial sum should be 3")
+      let result1 = Assert.equal(sum.contents, 3, ~message="Initial sum should be 3")
       Signal.set(a, 5)
-      let result2 = assertEqual(sum.contents, 7, ~message="Sum should update to 7")
+      let result2 = Assert.equal(sum.contents, 7, ~message="Sum should update to 7")
       disposer.dispose()
-      combineResults([result1, result2])
+      Assert.combineResults([result1, result2])
     }),
-    test("effect cleanup runs on re-execution", () => {
+    Test.make("effect cleanup runs on re-execution", () => {
       let count = Signal.make(0)
       let cleanupCount = ref(0)
       let disposer = Effect.runWithDisposer(() => {
@@ -50,15 +51,15 @@ let tests = suite(
       Signal.set(count, 1)
       Signal.set(count, 2)
       disposer.dispose()
-      assertTrue(cleanupCount.contents >= 2, ~message="Cleanup should run on re-execution")
+      Assert.isTrue(cleanupCount.contents >= 2, ~message="Cleanup should run on re-execution")
     }),
-    test("effect cleanup runs on disposal", () => {
+    Test.make("effect cleanup runs on disposal", () => {
       let cleaned = ref(false)
       let disposer = Effect.runWithDisposer(() => Some(() => cleaned := true))
       disposer.dispose()
-      assertTrue(cleaned.contents, ~message="Cleanup should run on disposal")
+      Assert.isTrue(cleaned.contents, ~message="Cleanup should run on disposal")
     }),
-    test("effect with conditional dependency", () => {
+    Test.make("effect with conditional dependency", () => {
       let toggle = Signal.make(true)
       let a = Signal.make(1)
       let b = Signal.make(2)
@@ -71,13 +72,13 @@ let tests = suite(
         }
         None
       })
-      let result1 = assertEqual(result.contents, 1, ~message="Should read from signal a")
+      let result1 = Assert.equal(result.contents, 1, ~message="Should read from signal a")
       Signal.set(toggle, false)
-      let result2 = assertEqual(result.contents, 2, ~message="Should read from signal b")
+      let result2 = Assert.equal(result.contents, 2, ~message="Should read from signal b")
       disposer.dispose()
-      combineResults([result1, result2])
+      Assert.combineResults([result1, result2])
     }),
-    test("nested effects", () => {
+    Test.make("nested effects", () => {
       let outer = Signal.make(0)
       let outerRuns = ref(0)
       let innerRuns = ref(0)
@@ -94,12 +95,12 @@ let tests = suite(
       Signal.set(outer, 1)
       disposer1.dispose()
       disposer2.dispose()
-      assertTrue(
+      Assert.isTrue(
         outerRuns.contents >= 1 && innerRuns.contents >= 1,
         ~message="Both effects should run",
       )
     }),
-    test("effect with computed dependency", () => {
+    Test.make("effect with computed dependency", () => {
       let base = Signal.make(2)
       let doubled = Computed.make(() => Signal.get(base) * 2)
       let result = ref(0)
@@ -107,13 +108,13 @@ let tests = suite(
         result := Signal.get(doubled)
         None
       })
-      let result1 = assertEqual(result.contents, 4, ~message="Initial result should be 4")
+      let result1 = Assert.equal(result.contents, 4, ~message="Initial result should be 4")
       Signal.set(base, 3)
-      let result2 = assertEqual(result.contents, 6, ~message="Result should update to 6")
+      let result2 = Assert.equal(result.contents, 6, ~message="Result should update to 6")
       disposer.dispose()
-      combineResults([result1, result2])
+      Assert.combineResults([result1, result2])
     }),
-    test("effect disposal stops tracking", () => {
+    Test.make("effect disposal stops tracking", () => {
       let count = Signal.make(0)
       let runCount = ref(0)
       let disposer = Effect.runWithDisposer(() => {
@@ -125,26 +126,26 @@ let tests = suite(
       disposer.dispose()
       Signal.set(count, 1)
       Signal.set(count, 2)
-      assertEqual(
+      Assert.equal(
         runCount.contents,
         runsBeforeDispose,
         ~message="Effect should not run after disposal",
       )
     }),
-    test("effect with array mutation tracking", () => {
+    Test.make("effect with array mutation tracking", () => {
       let items = Signal.make([1, 2, 3])
       let length = ref(0)
       let disposer = Effect.runWithDisposer(() => {
         length := Array.length(Signal.get(items))
         None
       })
-      let result1 = assertEqual(length.contents, 3, ~message="Initial length should be 3")
+      let result1 = Assert.equal(length.contents, 3, ~message="Initial length should be 3")
       Signal.set(items, [1, 2, 3, 4])
-      let result2 = assertEqual(length.contents, 4, ~message="Length should update to 4")
+      let result2 = Assert.equal(length.contents, 4, ~message="Length should update to 4")
       disposer.dispose()
-      combineResults([result1, result2])
+      Assert.combineResults([result1, result2])
     }),
-    test("effect does not run for untracked signals", () => {
+    Test.make("effect does not run for untracked signals", () => {
       let tracked = Signal.make(1)
       let untracked = Signal.make(10)
       let runCount = ref(0)
@@ -156,7 +157,7 @@ let tests = suite(
       })
       let initialRuns = runCount.contents
       Signal.set(untracked, 20)
-      let result = assertEqual(
+      let result = Assert.equal(
         runCount.contents,
         initialRuns,
         ~message="Effect should not run for peeked signals",
@@ -164,7 +165,7 @@ let tests = suite(
       disposer.dispose()
       result
     }),
-    test("multiple disposals are safe", () => {
+    Test.make("multiple disposals are safe", () => {
       let disposer = Effect.runWithDisposer(() => None)
       disposer.dispose()
       disposer.dispose()

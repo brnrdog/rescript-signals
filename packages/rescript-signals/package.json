@@ -1,0 +1,38 @@
+{
+  "name": "rescript-signals",
+  "version": "2.1.0",
+  "description": "Reactive Signals primitives implemented in ReScript.",
+  "main": "./src/Signals.res.mjs",
+  "module": "./src/Signals.res.mjs",
+  "types": "./src/Signals.res.d.ts",
+  "files": [
+    "src/**/*.res",
+    "src/**/*.res.mjs",
+    "src/**/*.res.d.ts",
+    "lib/bs/src",
+    "lib/bs/build.ninja",
+    "lib/bs/compiler-info.json",
+    "rescript.json",
+    "CHANGELOG.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "rescript && node tests/RunTests.res.mjs",
+    "build": "rescript",
+    "clean": "rescript clean",
+    "prepack": "node scripts/prepack.js",
+    "postpack": "node scripts/postpack.js",
+    "release": "semantic-release -e semantic-release-monorepo"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brnrdog/rescript-signals.git",
+    "directory": "packages/rescript-signals"
+  },
+  "keywords": ["rescript", "signals", "reactivity", "state"],
+  "author": "Bernardo Gurgel <brnrdog@hey.com>",
+  "license": "SEE LICENSE IN LICENSE",
+  "bugs": { "url": "https://github.com/brnrdog/rescript-signals/issues" },
+  "homepage": "https://brnrdog.github.io/rescript-signals/"
+}
