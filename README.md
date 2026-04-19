@@ -18,7 +18,7 @@ Then, add it to your ReScript project's `rescript.json`:
 
 ```json
 {
-  "bs-dependencies": ["rescript-signals"]
+  "dependencies": ["rescript-signals"]
 }
 ```
 
@@ -84,6 +84,18 @@ Effect.run(() => {
 
   Some(() => Console.log("cleanup")) // Optional cleanup
 })
+```
+
+If you need to pragmatically dispose the effect, you can use `Effect.runWithDispose`:
+
+```rescript
+let disposer = Effect.runWithDispose(() => {
+  Console.log(Signal.get(count))
+  None
+})
+
+// Later
+disposer.dispose()
 ```
 
 ### Batching and Untracked Reads
