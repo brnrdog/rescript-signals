@@ -5,6 +5,10 @@
     {
       "dir": "src",
       "subdirs": true
+    },
+    {
+      "dir": "tests",
+      "type": "dev"
     }
   ],
   "package-specs": {
@@ -21,6 +25,7 @@
     "@rescript/react",
     "rescript-signals"
   ],
+  "dev-dependencies": ["zekr"],
   "compiler-flags": [
     "-open RescriptCore"
   ]
