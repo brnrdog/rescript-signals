@@ -21,8 +21,8 @@
     "test": "rescript && node tests/RunTests.res.mjs",
     "build": "rescript",
     "clean": "rescript clean",
-    "prepack": "node scripts/prepack.js",
-    "postpack": "node scripts/postpack.js",
+    "prepack": "node scripts/prepack.cjs",
+    "postpack": "node scripts/postpack.cjs",
     "release": "semantic-release -e semantic-release-monorepo"
   },
   "repository": {

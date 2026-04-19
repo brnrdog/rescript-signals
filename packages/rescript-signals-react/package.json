@@ -1,6 +1,6 @@
 {
   "name": "rescript-signals-react",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "React adapter for rescript-signals using useSyncExternalStore.",
   "type": "module",
   "main": "./src/SignalsReact.res.mjs",
@@ -20,8 +20,8 @@
     "test": "rescript && node tests/SignalsReact_test.res.mjs",
     "build": "rescript",
     "clean": "rescript clean",
-    "prepack": "node scripts/prepack.js",
-    "postpack": "node scripts/postpack.js",
+    "prepack": "node scripts/prepack.cjs",
+    "postpack": "node scripts/postpack.cjs",
     "release": "semantic-release -e semantic-release-monorepo"
   },
   "peerDependencies": {
