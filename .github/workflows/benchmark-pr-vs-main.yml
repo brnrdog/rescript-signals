@@ -42,6 +42,14 @@ jobs:
       - name: Build repository
         run: npm run build
 
+      - name: Install baseline dependencies
+        working-directory: main-baseline
+        run: npm ci
+
+      - name: Build baseline
+        working-directory: main-baseline
+        run: npm run build
+
       - name: Clone benchmark suite
         run: git clone --depth=1 https://github.com/milomg/js-reactivity-benchmark.git .tmp/js-reactivity-benchmark
 
@@ -57,8 +65,8 @@ jobs:
         run: node scripts/ci/benchmark-pr-vs-main.mjs
         env:
           BENCH_CORE_DIST_DIR: .tmp/js-reactivity-benchmark/packages/core/dist
-          CURRENT_SIGNALS_DIR: packages/rescript-signals/src/signals
-          MAIN_SIGNALS_DIR: main-baseline/packages/rescript-signals/src/signals
+          CURRENT_SIGNALS_DIR: packages/rescript-signals
+          MAIN_SIGNALS_DIR: main-baseline/packages/rescript-signals
           BENCH_OUT_DIR: benchmark-results/ci/pr-vs-main
 
       - name: Upload benchmark artifacts
