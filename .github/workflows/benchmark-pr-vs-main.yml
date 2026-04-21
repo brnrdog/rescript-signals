@@ -49,9 +49,9 @@ jobs:
         working-directory: .tmp/js-reactivity-benchmark
         run: pnpm install --frozen-lockfile
 
-      - name: Build benchmark core package
-        working-directory: .tmp/js-reactivity-benchmark
-        run: pnpm --filter js-reactivity-benchmark build
+      - name: Build benchmark core runtime bundle
+        working-directory: .tmp/js-reactivity-benchmark/packages/core
+        run: pnpm exec esbuild src/index.ts --bundle --format=esm --target=esnext --outdir=dist --sourcemap=external
 
       - name: Run PR vs main benchmark
         run: node scripts/ci/benchmark-pr-vs-main.mjs
