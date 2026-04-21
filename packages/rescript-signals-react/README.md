@@ -1,6 +1,7 @@
 # rescript-signals-react
 
 [![npm version](https://badgen.net/npm/v/rescript-signals-react)](https://www.npmjs.com/package/rescript-signals-react)
+[![bundlephobia](https://badgen.net/bundlephobia/min/rescript-signals-react)](https://bundlephobia.com/package/rescript-signals-react)
 
 React adapter for [rescript-signals](https://github.com/brnrdog/rescript-signals) using `useSyncExternalStore`. Concurrent-mode and StrictMode safe.
 
