@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -123,11 +123,33 @@ function createReScriptFramework(name, modules) {
   };
 }
 
-async function importSignalModules(signalsDir) {
+function resolveSignalsDir(baseDir, label) {
+  const candidates = [
+    baseDir,
+    resolve(baseDir, "src/signals"),
+    resolve(baseDir, "lib/bs/src/signals"),
+  ];
+
+  for (const candidate of candidates) {
+    const signalFile = resolve(candidate, "Signal.res.mjs");
+    const computedFile = resolve(candidate, "Computed.res.mjs");
+    const effectFile = resolve(candidate, "Effect.res.mjs");
+    if (existsSync(signalFile) && existsSync(computedFile) && existsSync(effectFile)) {
+      return candidate;
+    }
+  }
+
+  throw new Error(
+    `Could not resolve ReScript module directory for ${label}. Tried: ${candidates.join(", ")}`,
+  );
+}
+
+async function importSignalModules(signalsDir, label) {
+  const resolvedSignalsDir = resolveSignalsDir(signalsDir, label);
   return {
-    Signal: await import(pathToFileURL(resolve(signalsDir, "Signal.res.mjs")).href),
-    Computed: await import(pathToFileURL(resolve(signalsDir, "Computed.res.mjs")).href),
-    Effect: await import(pathToFileURL(resolve(signalsDir, "Effect.res.mjs")).href),
+    Signal: await import(pathToFileURL(resolve(resolvedSignalsDir, "Signal.res.mjs")).href),
+    Computed: await import(pathToFileURL(resolve(resolvedSignalsDir, "Computed.res.mjs")).href),
+    Effect: await import(pathToFileURL(resolve(resolvedSignalsDir, "Effect.res.mjs")).href),
   };
 }
 
@@ -139,11 +161,11 @@ async function main() {
   );
   const currentSignalsDir = envOrDefault(
     "CURRENT_SIGNALS_DIR",
-    resolve(repoRoot, "packages/rescript-signals/src/signals"),
+    resolve(repoRoot, "packages/rescript-signals"),
   );
   const mainSignalsDir = envOrDefault(
     "MAIN_SIGNALS_DIR",
-    resolve(repoRoot, "main-baseline/packages/rescript-signals/src/signals"),
+    resolve(repoRoot, "main-baseline/packages/rescript-signals"),
   );
   const outDir = envOrDefault(
     "BENCH_OUT_DIR",
@@ -153,8 +175,8 @@ async function main() {
   const benchApi = await import(pathToFileURL(resolve(benchCoreDistDir, "index.js")).href);
   const { runTests } = benchApi;
 
-  const mainModules = await importSignalModules(mainSignalsDir);
-  const currentModules = await importSignalModules(currentSignalsDir);
+  const mainModules = await importSignalModules(mainSignalsDir, "main");
+  const currentModules = await importSignalModules(currentSignalsDir, "PR");
 
   const mainLabel = "ReScript Signals (main)";
   const currentLabel = "ReScript Signals (PR)";
