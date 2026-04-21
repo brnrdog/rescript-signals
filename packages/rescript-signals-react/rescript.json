@@ -1,6 +1,5 @@
 {
   "name": "rescript-signals-react",
-  "namespace": "SignalsReact",
   "sources": [
     {
       "dir": "src",
