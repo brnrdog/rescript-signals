@@ -1,0 +1,111 @@
+name: Benchmark PR vs main
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  benchmark:
+    name: Benchmark
+    runs-on: ubuntu-latest
+    env:
+      npm_config_legacy_peer_deps: "true"
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+
+      - name: Checkout main baseline
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main-baseline
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install repository dependencies
+        run: npm ci
+
+      - name: Build repository
+        run: npm run build
+
+      - name: Clone benchmark suite
+        run: git clone --depth=1 https://github.com/milomg/js-reactivity-benchmark.git .tmp/js-reactivity-benchmark
+
+      - name: Install benchmark dependencies
+        working-directory: .tmp/js-reactivity-benchmark
+        run: pnpm install --frozen-lockfile
+
+      - name: Build benchmark core package
+        working-directory: .tmp/js-reactivity-benchmark
+        run: pnpm --filter js-reactivity-benchmark build
+
+      - name: Run PR vs main benchmark
+        run: node scripts/ci/benchmark-pr-vs-main.mjs
+        env:
+          BENCH_CORE_DIST_DIR: .tmp/js-reactivity-benchmark/packages/core/dist
+          CURRENT_SIGNALS_DIR: packages/rescript-signals/src/signals
+          MAIN_SIGNALS_DIR: main-baseline/packages/rescript-signals/src/signals
+          BENCH_OUT_DIR: benchmark-results/ci/pr-vs-main
+
+      - name: Upload benchmark artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-pr-vs-main
+          path: benchmark-results/ci/pr-vs-main
+          if-no-files-found: error
+
+      - name: Add workflow summary
+        run: |
+          echo "## ReScript Signals benchmark: PR vs main" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          cat benchmark-results/ci/pr-vs-main/pr-comment-latest.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upsert PR benchmark comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require("fs");
+            const marker = "<!-- rescript-signals-benchmark-pr-vs-main -->";
+            const body = fs.readFileSync("benchmark-results/ci/pr-vs-main/pr-comment-latest.md", "utf8");
+            const commentBody = `${marker}\n${body}`;
+
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number,
+              per_page: 100,
+            });
+
+            const existing = comments.find((c) => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body: commentBody,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body: commentBody,
+              });
+            }
