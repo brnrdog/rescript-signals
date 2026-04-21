@@ -7,15 +7,22 @@ type t<'a> = {
   subs: Core.subs,
 }
 
+let defaultEquals = (a: 'a, b: 'a): bool => a === b
+let neverEquals: ('a, 'a) => bool = (_a, _b) => false
+
 let make = (initialValue: 'a, ~name: option<string>=?, ~equals: option<('a, 'a) => bool>=?): t<
   'a,
 > => {
   let id = Id.make()
+  let equalsFn = switch equals {
+  | Some(eq) => eq
+  | None => defaultEquals
+  }
 
   {
     id,
     value: initialValue,
-    equals: equals->Option.getOr((a, b) => a === b),
+    equals: equalsFn,
     name,
     subs: Core.makeSubs(),
   }
@@ -27,7 +34,7 @@ let makeForComputed = (initialValue: 'a, ~name: option<string>=?): t<'a> => {
   {
     id,
     value: initialValue,
-    equals: (_, _) => false, // Computeds always check freshness via dirty flag
+    equals: neverEquals, // Computeds always check freshness via dirty flag
     name,
     subs: Core.makeSubs(),
   }
@@ -59,6 +66,7 @@ let set = (signal: t<'a>, newValue: 'a): unit => {
   if shouldUpdate {
     signal.value = newValue
     signal.subs.version = signal.subs.version + 1
+    Core.globalVersion := Core.globalVersion.contents + 1
     Scheduler.notifySubs(signal.subs)
   }
 }

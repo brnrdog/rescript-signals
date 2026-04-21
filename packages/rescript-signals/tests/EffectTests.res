@@ -165,6 +165,102 @@ let tests = Suite.make(
       disposer.dispose()
       result
     }),
+    Test.make("flush drains effects enqueued by running effects", () => {
+      let trigger = Signal.make(0)
+      let derived = Signal.make(0)
+      let derivedRuns = ref(0)
+
+      let derivedDisposer = Effect.runWithDisposer(() => {
+        ignore(Signal.get(derived))
+        derivedRuns := derivedRuns.contents + 1
+        None
+      })
+
+      let triggerDisposer = Effect.runWithDisposer(() => {
+        let value = Signal.get(trigger)
+        if value > 0 {
+          Signal.set(derived, value)
+        }
+        None
+      })
+
+      Signal.set(trigger, 1)
+
+      let result = Assert.equal(
+        derivedRuns.contents,
+        2,
+        ~message="Derived effect should run in same flush when enqueued by another effect",
+      )
+
+      triggerDisposer.dispose()
+      derivedDisposer.dispose()
+      result
+    }),
+    Test.make("nested effect creation preserves outer effect dependency", () => {
+      let trigger = Signal.make(0)
+      let source = Signal.make(0)
+      let outerRuns = ref(0)
+      let innerDisposer: ref<option<Effect.disposer>> = ref(None)
+
+      let outerDisposer = Effect.runWithDisposer(() => {
+        let t = Signal.get(trigger)
+        if t == 1 && innerDisposer.contents === None {
+          let created = Effect.runWithDisposer(() => {
+            ignore(Signal.get(source))
+            None
+          })
+          innerDisposer := Some(created)
+        }
+        ignore(Signal.get(source))
+        outerRuns := outerRuns.contents + 1
+        None
+      })
+
+      Signal.set(trigger, 1)
+      Signal.set(source, 1)
+
+      let result = Assert.equal(
+        outerRuns.contents,
+        3,
+        ~message="Outer effect should still rerun when source changes after nested effect creation",
+      )
+
+      switch innerDisposer.contents {
+      | Some(disposer) => disposer.dispose()
+      | None => ()
+      }
+      outerDisposer.dispose()
+      result
+    }),
+    Test.make("nested computed creation preserves outer computed dependency", () => {
+      let trigger = Signal.make(0)
+      let source = Signal.make(0)
+
+      let outerComputed = Computed.make(() => {
+        ignore(Signal.get(trigger))
+        let _nested = Computed.make(() => Signal.get(source) + 1)
+        Signal.get(source)
+      })
+
+      let outerRuns = ref(0)
+      let disposer = Effect.runWithDisposer(() => {
+        ignore(Signal.get(outerComputed))
+        outerRuns := outerRuns.contents + 1
+        None
+      })
+
+      Signal.set(trigger, 1)
+      Signal.set(source, 1)
+
+      let result = Assert.equal(
+        outerRuns.contents,
+        3,
+        ~message="Outer computed should stay subscribed to source after nested computed creation",
+      )
+
+      disposer.dispose()
+      result
+    }),
     Test.make("multiple disposals are safe", () => {
       let disposer = Effect.runWithDisposer(() => None)
       disposer.dispose()
