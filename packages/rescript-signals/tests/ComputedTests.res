@@ -156,5 +156,203 @@ let tests = Suite.make(
       disposer.dispose()
       Assert.combineResults([result1, result2])
     }),
+    Test.make("computed with custom equals function", () => {
+      // Test that custom equals function is used for value comparison
+      let obj = Signal.make({"id": 1, "name": "Alice"})
+
+      // Computed extracts just the id, with custom equality
+      let userId = Computed.make(
+        () => Signal.get(obj)["id"],
+        ~equals=(a, b) => a == b,
+      )
+
+      let result1 = Assert.equal(Signal.peek(userId), 1, ~message="Initial value should be 1")
+
+      // Change name but keep same id
+      Signal.set(obj, {"id": 1, "name": "Bob"})
+      let result2 = Assert.equal(Signal.peek(userId), 1, ~message="Value should still be 1")
+
+      // Change id
+      Signal.set(obj, {"id": 2, "name": "Bob"})
+      let result3 = Assert.equal(Signal.peek(userId), 2, ~message="Value should update to 2")
+
+      Assert.combineResults([result1, result2, result3])
+    }),
+    Test.make("custom equals suppresses downstream effect when value is unchanged", () => {
+      let profile = Signal.make({"id": 1, "name": "Alice"})
+      let userId = Computed.make(
+        () => Signal.get(profile)["id"],
+        ~equals=(a, b) => a == b,
+      )
+      let effectRuns = ref(0)
+      let disposer = Effect.runWithDisposer(() => {
+        effectRuns := effectRuns.contents + 1
+        ignore(Signal.get(userId))
+        None
+      })
+
+      let result1 = Assert.equal(effectRuns.contents, 1, ~message="Effect should run once initially")
+
+      // Name changes, derived id does not.
+      Signal.set(profile, {"id": 1, "name": "Bob"})
+      let result2 = Assert.equal(
+        effectRuns.contents,
+        1,
+        ~message="Effect should not run when derived value is unchanged",
+      )
+
+      // Derived id changes.
+      Signal.set(profile, {"id": 2, "name": "Bob"})
+      let result3 = Assert.equal(
+        effectRuns.contents,
+        2,
+        ~message="Effect should run once when derived value changes",
+      )
+
+      disposer.dispose()
+      Assert.combineResults([result1, result2, result3])
+    }),
+    Test.make("repro: custom equals should suppress effect when derived value is unchanged", () => {
+      let profile = Signal.make({"id": 1, "name": "Alice"})
+      let userId = Computed.make(
+        () => Signal.get(profile)["id"],
+        ~equals=(a, b) => a == b,
+      )
+      let effectRuns = ref(0)
+      let disposer = Effect.runWithDisposer(() => {
+        effectRuns := effectRuns.contents + 1
+        ignore(Signal.get(userId))
+        None
+      })
+
+      // Source update does not change computed output.
+      Signal.set(profile, {"id": 1, "name": "Bob"})
+
+      let result = Assert.equal(
+        effectRuns.contents,
+        1,
+        ~message="Expected no effect re-run when custom equals says computed output is unchanged",
+      )
+
+      disposer.dispose()
+      result
+    }),
+    Test.make("computed equality with array length", () => {
+      let items = Signal.make([1, 2, 3])
+      let recomputeCount = ref(0)
+
+      // Computed that only cares about length, not contents
+      let length = Computed.make(
+        () => {
+          recomputeCount := recomputeCount.contents + 1
+          Signal.get(items)->Array.length
+        },
+        ~equals=(a, b) => a == b,
+      )
+
+      let _ = Signal.peek(length)
+      let result1 = Assert.equal(Signal.peek(length), 3, ~message="Initial length should be 3")
+
+      // Change contents but keep same length
+      Signal.set(items, [4, 5, 6])
+      let _ = Signal.peek(length)
+      let result2 = Assert.equal(Signal.peek(length), 3, ~message="Length should still be 3")
+
+      // Change length
+      Signal.set(items, [1, 2])
+      let result3 = Assert.equal(Signal.peek(length), 2, ~message="Length should update to 2")
+
+      Assert.combineResults([result1, result2, result3])
+    }),
+    Test.make("computed with structural equality for tuples", () => {
+      // Test structural equality comparison for tuple values
+      let position = Signal.make((0, 0))
+
+      // Computed with structural equality for point tuple
+      let currentPos = Computed.make(
+        () => Signal.get(position),
+        ~equals=((ax, ay), (bx, by)) => ax == bx && ay == by,
+      )
+
+      let posSum = Computed.make(() => {
+        let (x, y) = Signal.get(currentPos)
+        x + y
+      })
+
+      let result1 = Assert.equal(Signal.peek(posSum), 0, ~message="Initial sum should be 0")
+
+      // Set to structurally equal point (different reference)
+      Signal.set(position, (0, 0))
+      let result2 = Assert.equal(Signal.peek(posSum), 0, ~message="Sum should still be 0")
+
+      // Set to different point
+      Signal.set(position, (10, 20))
+      let result3 = Assert.equal(Signal.peek(posSum), 30, ~message="Sum should update to 30")
+
+      Assert.combineResults([result1, result2, result3])
+    }),
+    Test.make("chained computeds with equality short-circuit", () => {
+      let source = Signal.make(10)
+      let middleComputeCount = ref(0)
+      let finalComputeCount = ref(0)
+
+      // Middle computed: clamps value to 0-100 range
+      let clamp = (min, max, v) =>
+        if v < min {
+          min
+        } else if v > max {
+          max
+        } else {
+          v
+        }
+
+      let clamped = Computed.make(
+        () => {
+          middleComputeCount := middleComputeCount.contents + 1
+          clamp(0, 100, Signal.get(source))
+        },
+        ~equals=(a, b) => a == b,
+      )
+
+      // Final computed depends on clamped
+      let doubled = Computed.make(
+        () => {
+          finalComputeCount := finalComputeCount.contents + 1
+          Signal.get(clamped) * 2
+        },
+        ~equals=(a, b) => a == b,
+      )
+
+      let _ = Signal.peek(doubled)
+      let result1 = Assert.equal(Signal.peek(doubled), 20, ~message="Initial value should be 20")
+
+      // Change source but clamped result stays the same (still 10)
+      Signal.set(source, 10)
+      let _ = Signal.peek(doubled)
+
+      // Change source to value that clamps to same result
+      let _beforeMiddle = middleComputeCount.contents
+      let _beforeFinal = finalComputeCount.contents
+      Signal.set(source, 10) // Same value
+      let _ = Signal.peek(doubled)
+
+      let result2 = Assert.equal(
+        Signal.peek(doubled),
+        20,
+        ~message="Value should still be 20",
+      )
+
+      // Change to different clamped value
+      Signal.set(source, 50)
+      let _ = Signal.peek(doubled)
+
+      let result3 = Assert.equal(
+        Signal.peek(doubled),
+        100,
+        ~message="Value should update to 100",
+      )
+
+      Assert.combineResults([result1, result2, result3])
+    }),
   ],
 )
