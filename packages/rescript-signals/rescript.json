@@ -1,6 +1,5 @@
 {
   "name": "rescript-signals",
-  "namespace": "Signals",
   "sources": [
     {
       "dir": "src",
