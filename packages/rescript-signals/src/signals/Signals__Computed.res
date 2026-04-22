@@ -1,13 +1,13 @@
 let makeWithoutEquals = (
   compute: unit => 'a,
   ~name: option<string>=?,
-): Signal.t<'a> => {
+): Signals__Signal.t<'a> => {
   let id = Id.make()
   let equalsFn: ('a, 'a) => bool = (_a, _b) => false
 
   // Create a mutable ref to hold the signal so the compute function can update it
   // Using Obj.magic to avoid Option wrapper overhead
-  let signalRef: ref<Signal.t<'a>> = ref(Obj.magic())
+  let signalRef: ref<Signals__Signal.t<'a>> = ref(Obj.magic())
 
   // Fast recompute path for default behavior (no custom equality checks)
   let recompute = () => {
@@ -27,7 +27,7 @@ let makeWithoutEquals = (
   Scheduler.currentComputedSubs := prev
 
   // Create the signal with the initial value
-  let signal: Signal.t<'a> = {
+  let signal: Signals__Signal.t<'a> = {
     id,
     value: initialValue,
     equals: equalsFn,
@@ -47,12 +47,12 @@ let makeWithEquals = (
   compute: unit => 'a,
   equalsFn: ('a, 'a) => bool,
   ~name: option<string>=?,
-): Signal.t<'a> => {
+): Signals__Signal.t<'a> => {
   let id = Id.make()
 
   // Create a mutable ref to hold the signal so the compute function can update it
   // Using Obj.magic to avoid Option wrapper overhead
-  let signalRef: ref<Signal.t<'a>> = ref(Obj.magic())
+  let signalRef: ref<Signals__Signal.t<'a>> = ref(Obj.magic())
 
   // Recompute function - updates the signal's value and tracks if it changed
   let recompute = () => {
@@ -80,7 +80,7 @@ let makeWithEquals = (
   Scheduler.currentComputedSubs := prev
 
   // Create the signal with the initial value
-  let signal: Signal.t<'a> = {
+  let signal: Signals__Signal.t<'a> = {
     id,
     value: initialValue,
     equals: equalsFn,
@@ -100,12 +100,12 @@ let make = (
   compute: unit => 'a,
   ~name: option<string>=?,
   ~equals: option<('a, 'a) => bool>=?,
-): Signal.t<'a> =>
+): Signals__Signal.t<'a> =>
   switch equals {
   | Some(eq) => makeWithEquals(compute, eq, ~name?)
   | None => makeWithoutEquals(compute, ~name?)
   }
 
-let dispose = (signal: Signal.t<'a>): unit => {
+let dispose = (signal: Signals__Signal.t<'a>): unit => {
   Core.clearSubsDeps(signal.subs)
 }
