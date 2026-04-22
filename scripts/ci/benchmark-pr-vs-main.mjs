@@ -126,16 +126,43 @@ function createReScriptFramework(name, modules) {
 function resolveSignalsDir(baseDir, label) {
   const candidates = [
     baseDir,
+    resolve(baseDir, "src"),
     resolve(baseDir, "src/signals"),
     resolve(baseDir, "lib/bs/src/signals"),
   ];
 
   for (const candidate of candidates) {
+    const bundledEntryFile = resolve(candidate, "Signals.res.mjs");
+    if (existsSync(bundledEntryFile)) {
+      return {
+        type: "entry",
+        file: bundledEntryFile,
+      };
+    }
+
     const signalFile = resolve(candidate, "Signal.res.mjs");
     const computedFile = resolve(candidate, "Computed.res.mjs");
     const effectFile = resolve(candidate, "Effect.res.mjs");
     if (existsSync(signalFile) && existsSync(computedFile) && existsSync(effectFile)) {
-      return candidate;
+      return {
+        type: "split",
+        dir: candidate,
+      };
+    }
+
+    const prefixedSignalFile = resolve(candidate, "Signals__Signal.res.mjs");
+    const prefixedComputedFile = resolve(candidate, "Signals__Computed.res.mjs");
+    const prefixedEffectFile = resolve(candidate, "Signals__Effect.res.mjs");
+    if (
+      existsSync(prefixedSignalFile) &&
+      existsSync(prefixedComputedFile) &&
+      existsSync(prefixedEffectFile)
+    ) {
+      return {
+        type: "split",
+        dir: candidate,
+        prefixed: true,
+      };
     }
   }
 
@@ -146,10 +173,24 @@ function resolveSignalsDir(baseDir, label) {
 
 async function importSignalModules(signalsDir, label) {
   const resolvedSignalsDir = resolveSignalsDir(signalsDir, label);
+
+  if (resolvedSignalsDir.type === "entry") {
+    const modules = await import(pathToFileURL(resolvedSignalsDir.file).href);
+    return {
+      Signal: modules.Signal,
+      Computed: modules.Computed,
+      Effect: modules.Effect,
+    };
+  }
+
+  const dir = resolvedSignalsDir.dir;
+  const isPrefixed = resolvedSignalsDir.prefixed;
+  const prefix = isPrefixed ? "Signals__" : "";
+
   return {
-    Signal: await import(pathToFileURL(resolve(resolvedSignalsDir, "Signal.res.mjs")).href),
-    Computed: await import(pathToFileURL(resolve(resolvedSignalsDir, "Computed.res.mjs")).href),
-    Effect: await import(pathToFileURL(resolve(resolvedSignalsDir, "Effect.res.mjs")).href),
+    Signal: await import(pathToFileURL(resolve(dir, `${prefix}Signal.res.mjs`)).href),
+    Computed: await import(pathToFileURL(resolve(dir, `${prefix}Computed.res.mjs`)).href),
+    Effect: await import(pathToFileURL(resolve(dir, `${prefix}Effect.res.mjs`)).href),
   };
 }
 

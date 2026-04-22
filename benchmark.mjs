@@ -1,5 +1,5 @@
 // Simple benchmark for rescript-signals
-import { Signal, Computed, Effect } from './src/Signals.res.mjs';
+import { Signal, Computed, Effect } from './packages/rescript-signals/src/Signals.res.mjs';
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 
 const results = [];
@@ -135,7 +135,7 @@ console.log('\n--- Effects ---');
 {
   let effectCount = 0;
   const source = Signal.make(0);
-  const effect = Effect.run(() => {
+  const effect = Effect.runWithDisposer(() => {
     Signal.get(source);
     effectCount++;
     return undefined;
