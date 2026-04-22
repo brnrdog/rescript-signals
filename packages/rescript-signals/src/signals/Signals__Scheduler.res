@@ -1,20 +1,20 @@
 // Current execution context for computeds (subs IS the observer)
-let currentComputedSubs: ref<option<Core.subs>> = ref(None)
+let currentComputedSubs: ref<option<Signals__Core.subs>> = ref(None)
 
 // Current execution context for effects
-let currentObserver: ref<option<Core.observer>> = ref(None)
+let currentObserver: ref<option<Signals__Core.observer>> = ref(None)
 
 // Current dependency tracking version (shared across nested compute/effect runs)
 let currentTrackingVersion: ref<int> = ref(0)
 
 // Per-run dependency cursors (separate from true tail pointers).
-let currentComputedDepCursor: ref<option<Core.link>> = ref(None)
-let currentObserverDepCursor: ref<option<Core.link>> = ref(None)
+let currentComputedDepCursor: ref<option<Signals__Core.link>> = ref(None)
+let currentObserverDepCursor: ref<option<Signals__Core.link>> = ref(None)
 
 // Pending effects to execute
-let pendingEffects: array<Core.observer> = []
+let pendingEffects: array<Signals__Core.observer> = []
 // Pending computeds to recompute (subs that are dirty)
-let pendingComputedSubs: array<Core.subs> = []
+let pendingComputedSubs: array<Signals__Core.subs> = []
 let flushing: ref<bool> = ref(false)
 let pendingEffectsNeedsSort: ref<bool> = ref(false)
 let pendingComputedNeedsSort: ref<bool> = ref(false)
@@ -22,7 +22,7 @@ let lastEnqueuedEffectLevel: ref<int> = ref(0)
 let lastEnqueuedComputedLevel: ref<int> = ref(0)
 
 // Queue for iterative dirty marking
-let dirtyQueue: array<Core.subs> = []
+let dirtyQueue: array<Signals__Core.subs> = []
 
 // Efficient array clear
 let clearArray: array<'a> => unit = %raw(`function(arr) { arr.length = 0 }`)
@@ -39,9 +39,9 @@ function(arr, processedCount) {
 `)
 
 // Add effect to pending if not already there
-let addEffectToPending = (observer: Core.observer): unit => {
-  if !Core.isPending(observer) {
-    Core.setPending(observer)
+let addEffectToPending = (observer: Signals__Core.observer): unit => {
+  if !Signals__Core.isPending(observer) {
+    Signals__Core.setPending(observer)
     let lengthBefore = pendingEffects->Array.length
     if lengthBefore == 0 {
       pendingEffectsNeedsSort := false
@@ -54,9 +54,9 @@ let addEffectToPending = (observer: Core.observer): unit => {
 }
 
 // Add computed to pending if not already there
-let addComputedToPending = (subs: Core.subs): unit => {
-  if !Core.isSubsPending(subs) {
-    Core.setSubsPending(subs)
+let addComputedToPending = (subs: Signals__Core.subs): unit => {
+  if !Signals__Core.isSubsPending(subs) {
+    Signals__Core.setSubsPending(subs)
     let lengthBefore = pendingComputedSubs->Array.length
     if lengthBefore == 0 {
       pendingComputedNeedsSort := false
@@ -69,14 +69,14 @@ let addComputedToPending = (subs: Core.subs): unit => {
 }
 
 // Track a dependency from a computed (subs tracks subs)
-let trackDepFromComputed = (computedSubs: Core.subs, sourceSubs: Core.subs): unit => {
-  let computedObserver: Core.observer = Obj.magic(computedSubs)
+let trackDepFromComputed = (computedSubs: Signals__Core.subs, sourceSubs: Signals__Core.subs): unit => {
+  let computedObserver: Signals__Core.observer = Obj.magic(computedSubs)
 
   if computedSubs.firstDep === None {
-    let newLink: Core.link = Core.makeLink(sourceSubs, computedObserver)
+    let newLink: Signals__Core.link = Signals__Core.makeLink(sourceSubs, computedObserver)
     newLink.lastTrackedVersion = currentTrackingVersion.contents
-    Core.linkToSubsDeps(computedSubs, newLink)
-    Core.linkToSubs(sourceSubs, newLink)
+    Signals__Core.linkToSubsDeps(computedSubs, newLink)
+    Signals__Core.linkToSubs(sourceSubs, newLink)
     currentComputedDepCursor := Some(newLink)
   } else {
     let currentVersion = currentTrackingVersion.contents
@@ -116,7 +116,7 @@ let trackDepFromComputed = (computedSubs: Core.subs, sourceSubs: Core.subs): uni
     if !fastPathFound.contents {
       // Fall back to full scan
       let found = ref(false)
-      let foundLink: ref<option<Core.link>> = ref(None)
+      let foundLink: ref<option<Signals__Core.link>> = ref(None)
       let link = ref(computedSubs.firstDep)
       while link.contents !== None && !found.contents {
         switch link.contents {
@@ -134,10 +134,10 @@ let trackDepFromComputed = (computedSubs: Core.subs, sourceSubs: Core.subs): uni
 
       // Create new link only if not found
       if !found.contents {
-        let newLink: Core.link = Core.makeLink(sourceSubs, computedObserver)
+        let newLink: Signals__Core.link = Signals__Core.makeLink(sourceSubs, computedObserver)
         newLink.lastTrackedVersion = currentVersion
-        Core.linkToSubsDeps(computedSubs, newLink)
-        Core.linkToSubs(sourceSubs, newLink)
+        Signals__Core.linkToSubsDeps(computedSubs, newLink)
+        Signals__Core.linkToSubs(sourceSubs, newLink)
         currentComputedDepCursor := Some(newLink)
       } else {
         currentComputedDepCursor := foundLink.contents
@@ -148,12 +148,12 @@ let trackDepFromComputed = (computedSubs: Core.subs, sourceSubs: Core.subs): uni
 
 // Track a dependency from an effect (observer tracks subs)
 // Uses version-based duplicate detection within a run cycle
-let trackDepFromEffect = (observer: Core.observer, sourceSubs: Core.subs): unit => {
+let trackDepFromEffect = (observer: Signals__Core.observer, sourceSubs: Signals__Core.subs): unit => {
   if observer.firstDep === None {
-    let newLink: Core.link = Core.makeLink(sourceSubs, observer)
+    let newLink: Signals__Core.link = Signals__Core.makeLink(sourceSubs, observer)
     newLink.lastTrackedVersion = currentTrackingVersion.contents
-    Core.linkToDeps(observer, newLink)
-    Core.linkToSubs(sourceSubs, newLink)
+    Signals__Core.linkToDeps(observer, newLink)
+    Signals__Core.linkToSubs(sourceSubs, newLink)
     currentObserverDepCursor := Some(newLink)
   } else {
     let currentVersion = currentTrackingVersion.contents
@@ -192,7 +192,7 @@ let trackDepFromEffect = (observer: Core.observer, sourceSubs: Core.subs): unit 
 
     if !fastPathFound.contents {
       let found = ref(false)
-      let foundLink: ref<option<Core.link>> = ref(None)
+      let foundLink: ref<option<Signals__Core.link>> = ref(None)
       let link = ref(observer.firstDep)
       while link.contents !== None && !found.contents {
         switch link.contents {
@@ -210,10 +210,10 @@ let trackDepFromEffect = (observer: Core.observer, sourceSubs: Core.subs): unit 
 
       // Create new link only if not found
       if !found.contents {
-        let newLink: Core.link = Core.makeLink(sourceSubs, observer)
+        let newLink: Signals__Core.link = Signals__Core.makeLink(sourceSubs, observer)
         newLink.lastTrackedVersion = currentVersion
-        Core.linkToDeps(observer, newLink)
-        Core.linkToSubs(sourceSubs, newLink)
+        Signals__Core.linkToDeps(observer, newLink)
+        Signals__Core.linkToSubs(sourceSubs, newLink)
         currentObserverDepCursor := Some(newLink)
       } else {
         currentObserverDepCursor := foundLink.contents
@@ -223,7 +223,7 @@ let trackDepFromEffect = (observer: Core.observer, sourceSubs: Core.subs): unit 
 }
 
 // Track dependency - routes to appropriate function based on current context
-let trackDep = (subs: Core.subs): unit => {
+let trackDep = (subs: Signals__Core.subs): unit => {
   switch currentComputedSubs.contents {
   | Some(computedSubs) => trackDepFromComputed(computedSubs, subs)
   | None =>
@@ -235,23 +235,23 @@ let trackDep = (subs: Core.subs): unit => {
 }
 
 // Compare by level for sorting
-let compareEffectsByLevel = (a: Core.observer, b: Core.observer): float => {
+let compareEffectsByLevel = (a: Signals__Core.observer, b: Signals__Core.observer): float => {
   Int.toFloat(a.level - b.level)
 }
 
-let compareSubsByLevel = (a: Core.subs, b: Core.subs): float => {
+let compareSubsByLevel = (a: Signals__Core.subs, b: Signals__Core.subs): float => {
   Int.toFloat(a.level - b.level)
 }
 
 // Compute level for a computed (based on its dependencies)
-let computeSubsLevel = (s: Core.subs): int => {
+let computeSubsLevel = (s: Signals__Core.subs): int => {
   let maxLevel = ref(0)
   let link = ref(s.firstDep)
   while link.contents !== None {
     switch link.contents {
     | Some(l) =>
       // Check if the source is a computed
-      if Core.isComputed(l.subs) {
+      if Signals__Core.isComputed(l.subs) {
         if l.subs.level > maxLevel.contents {
           maxLevel := l.subs.level
         }
@@ -264,13 +264,13 @@ let computeSubsLevel = (s: Core.subs): int => {
 }
 
 // Compute level for an effect
-let computeLevel = (observer: Core.observer): int => {
+let computeLevel = (observer: Signals__Core.observer): int => {
   let maxLevel = ref(0)
   let link = ref(observer.firstDep)
   while link.contents !== None {
     switch link.contents {
     | Some(l) =>
-      if Core.isComputed(l.subs) {
+      if Signals__Core.isComputed(l.subs) {
         if l.subs.level > maxLevel.contents {
           maxLevel := l.subs.level
         }
@@ -283,17 +283,17 @@ let computeLevel = (observer: Core.observer): int => {
 }
 
 // Run one computed recompute cycle with link reuse.
-let runComputedCycle = (subs: Core.subs, ~clearPending: bool): unit => {
+let runComputedCycle = (subs: Signals__Core.subs, ~clearPending: bool): unit => {
   let previousTrackingVersion = currentTrackingVersion.contents
   let previousVersion = subs.version
 
   // Increment tracking version for this cycle
-  Core.trackingVersion := Core.trackingVersion.contents + 1
-  currentTrackingVersion.contents = Core.trackingVersion.contents
+  Signals__Core.trackingVersion := Signals__Core.trackingVersion.contents + 1
+  currentTrackingVersion.contents = Signals__Core.trackingVersion.contents
 
   // DON'T clear deps - we'll reuse existing links
   if clearPending {
-    Core.clearSubsPending(subs)
+    Signals__Core.clearSubsPending(subs)
   }
 
   let prev = currentComputedSubs.contents
@@ -315,16 +315,16 @@ let runComputedCycle = (subs: Core.subs, ~clearPending: bool): unit => {
         let next = l.nextDep
         if l.lastTrackedVersion !== currentTrackingVersion.contents {
           // Stale - unlink from source's subscriber list and our dep list
-          Core.unlinkFromSubs(l)
-          Core.unlinkFromSubsDeps(subs, l)
+          Signals__Core.unlinkFromSubs(l)
+          Signals__Core.unlinkFromSubsDeps(subs, l)
         }
         link := next
       | None => ()
       }
     }
 
-    Core.clearSubsDirty(subs)
-    subs.lastGlobalVersion = Core.globalVersion.contents
+    Signals__Core.clearSubsDirty(subs)
+    subs.lastGlobalVersion = Signals__Core.globalVersion.contents
 
     // Propagate only when computed output changed.
     if subs.first !== None && subs.version !== previousVersion {
@@ -332,10 +332,10 @@ let runComputedCycle = (subs: Core.subs, ~clearPending: bool): unit => {
       while subLink.contents !== None {
         switch subLink.contents {
         | Some(l) =>
-          let linkedSubs = (Obj.magic(l.observer): Core.subs)
-          if Core.isComputed(linkedSubs) {
+          let linkedSubs = (Obj.magic(l.observer): Signals__Core.subs)
+          if Signals__Core.isComputed(linkedSubs) {
             // Mark downstream computed dirty (lazy propagation).
-            Core.setSubsDirty(linkedSubs)
+            Signals__Core.setSubsDirty(linkedSubs)
           } else {
             // Effects get queued for execution unless this effect is already running.
             switch currentObserver.contents {
@@ -365,7 +365,7 @@ let runComputedCycle = (subs: Core.subs, ~clearPending: bool): unit => {
 }
 
 // Retrack a computed (recompute with link reuse)
-let retrackComputed = (s: Core.subs): unit => {
+let retrackComputed = (s: Signals__Core.subs): unit => {
   let oldLevel = s.level
   runComputedCycle(s, ~clearPending=true)
 
@@ -375,16 +375,16 @@ let retrackComputed = (s: Core.subs): unit => {
 }
 
 // Retrack an effect (with link reuse)
-let retrackEffect = (observer: Core.observer): unit => {
+let retrackEffect = (observer: Signals__Core.observer): unit => {
   let oldLevel = observer.level
   let previousTrackingVersion = currentTrackingVersion.contents
 
   // Increment tracking version for this cycle
-  Core.trackingVersion := Core.trackingVersion.contents + 1
-  currentTrackingVersion.contents = Core.trackingVersion.contents
+  Signals__Core.trackingVersion := Signals__Core.trackingVersion.contents + 1
+  currentTrackingVersion.contents = Signals__Core.trackingVersion.contents
 
   // DON'T clear deps - we'll reuse existing links
-  Core.clearPending(observer)
+  Signals__Core.clearPending(observer)
 
   let prev = currentObserver.contents
   let prevCursor = currentObserverDepCursor.contents
@@ -402,15 +402,15 @@ let retrackEffect = (observer: Core.observer): unit => {
         let next = l.nextDep
         if l.lastTrackedVersion !== currentTrackingVersion.contents {
           // Stale - unlink from source's subscriber list and our dep list
-          Core.unlinkFromSubs(l)
-          Core.unlinkFromDeps(observer, l)
+          Signals__Core.unlinkFromSubs(l)
+          Signals__Core.unlinkFromDeps(observer, l)
         }
         link := next
       | None => ()
       }
     }
 
-    Core.clearDirty(observer)
+    Signals__Core.clearDirty(observer)
     currentObserver := prev
     currentObserverDepCursor := prevCursor
     currentTrackingVersion.contents = previousTrackingVersion
@@ -489,11 +489,11 @@ let flush = (): unit => {
 // Marks computeds dirty transitively.
 // Direct effects are queued immediately.
 // Effects reached through dirty computeds are deferred until parent computed recompute.
-let notifySubs = (subs: Core.subs): unit => {
+let notifySubs = (subs: Signals__Core.subs): unit => {
   // Fast path: no subscribers, nothing to notify.
   if subs.first === None {
     ()
-  } else if !Core.isComputed(subs) && subs.computedSubscriberCount == 0 {
+  } else if !Signals__Core.isComputed(subs) && subs.computedSubscriberCount == 0 {
     // Fast path for plain signals with direct effect subscribers only.
     let link = ref(subs.first)
     while link.contents !== None {
@@ -519,18 +519,18 @@ let notifySubs = (subs: Core.subs): unit => {
           switch link.contents {
           | Some(l) =>
             // The observer field might be a real observer (effect) or a subs (computed)
-            let linkedSubs = (Obj.magic(l.observer): Core.subs)
-            if Core.isComputed(linkedSubs) {
+            let linkedSubs = (Obj.magic(l.observer): Signals__Core.subs)
+            if Signals__Core.isComputed(linkedSubs) {
               // It's a computed - mark dirty and propagate transitively
-              if !Core.isSubsDirty(linkedSubs) {
-                Core.setSubsDirty(linkedSubs)
+              if !Signals__Core.isSubsDirty(linkedSubs) {
+                Signals__Core.setSubsDirty(linkedSubs)
                 dirtyQueue->Array.push(linkedSubs)->ignore
               }
             } else {
               // It's an effect.
               // If reached via a dirty computed, defer effect until computed recompute.
               // This lets computed equality short-circuit downstream effect runs.
-              if Core.isComputed(s) {
+              if Signals__Core.isComputed(s) {
                 if s.deferEffectsUntilRecompute {
                   addComputedToPending(s)
                 } else {
@@ -555,12 +555,12 @@ let notifySubs = (subs: Core.subs): unit => {
 }
 
 // Ensure a computed signal is fresh before reading (with link reuse)
-let ensureComputedFresh = (subs: Core.subs): unit => {
-  if Core.isComputed(subs) {
-    if Core.isSubsDirty(subs) {
+let ensureComputedFresh = (subs: Signals__Core.subs): unit => {
+  if Signals__Core.isComputed(subs) {
+    if Signals__Core.isSubsDirty(subs) {
       // Dirty without a newer global write means stale dirty flag only.
-      if subs.lastGlobalVersion === Core.globalVersion.contents {
-        Core.clearSubsDirty(subs)
+      if subs.lastGlobalVersion === Signals__Core.globalVersion.contents {
+        Signals__Core.clearSubsDirty(subs)
       } else {
         let oldLevel = subs.level
         runComputedCycle(subs, ~clearPending=false)
@@ -574,7 +574,7 @@ let ensureComputedFresh = (subs: Core.subs): unit => {
 }
 
 // Schedule an effect for execution
-let schedule = (observer: Core.observer): unit => {
+let schedule = (observer: Signals__Core.observer): unit => {
   addEffectToPending(observer)
   if !flushing.contents {
     flush()

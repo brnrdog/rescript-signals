@@ -2,7 +2,7 @@ let makeWithoutEquals = (
   compute: unit => 'a,
   ~name: option<string>=?,
 ): Signals__Signal.t<'a> => {
-  let id = Id.make()
+  let id = Signals__Id.make()
   let equalsFn: ('a, 'a) => bool = (_a, _b) => false
 
   // Create a mutable ref to hold the signal so the compute function can update it
@@ -18,13 +18,13 @@ let makeWithoutEquals = (
   }
 
   // Create combined subs (this IS the observer for the computed)
-  let subs = Core.makeComputedSubs(recompute, ~deferEffectsUntilRecompute=false)
+  let subs = Signals__Core.makeComputedSubs(recompute, ~deferEffectsUntilRecompute=false)
 
   // Initial computation under tracking to establish dependencies
-  let prev = Scheduler.currentComputedSubs.contents
-  Scheduler.currentComputedSubs := Some(subs)
+  let prev = Signals__Scheduler.currentComputedSubs.contents
+  Signals__Scheduler.currentComputedSubs := Some(subs)
   let initialValue = compute()
-  Scheduler.currentComputedSubs := prev
+  Signals__Scheduler.currentComputedSubs := prev
 
   // Create the signal with the initial value
   let signal: Signals__Signal.t<'a> = {
@@ -37,8 +37,8 @@ let makeWithoutEquals = (
 
   // Set the ref so recompute can access the signal
   signalRef := signal
-  subs.lastGlobalVersion = Core.globalVersion.contents
-  Core.clearSubsDirty(subs)
+  subs.lastGlobalVersion = Signals__Core.globalVersion.contents
+  Signals__Core.clearSubsDirty(subs)
 
   signal
 }
@@ -48,7 +48,7 @@ let makeWithEquals = (
   equalsFn: ('a, 'a) => bool,
   ~name: option<string>=?,
 ): Signals__Signal.t<'a> => {
-  let id = Id.make()
+  let id = Signals__Id.make()
 
   // Create a mutable ref to hold the signal so the compute function can update it
   // Using Obj.magic to avoid Option wrapper overhead
@@ -71,13 +71,13 @@ let makeWithEquals = (
   }
 
   // Create combined subs (this IS the observer for the computed)
-  let subs = Core.makeComputedSubs(recompute, ~deferEffectsUntilRecompute=true)
+  let subs = Signals__Core.makeComputedSubs(recompute, ~deferEffectsUntilRecompute=true)
 
   // Initial computation under tracking to establish dependencies
-  let prev = Scheduler.currentComputedSubs.contents
-  Scheduler.currentComputedSubs := Some(subs)
+  let prev = Signals__Scheduler.currentComputedSubs.contents
+  Signals__Scheduler.currentComputedSubs := Some(subs)
   let initialValue = compute()
-  Scheduler.currentComputedSubs := prev
+  Signals__Scheduler.currentComputedSubs := prev
 
   // Create the signal with the initial value
   let signal: Signals__Signal.t<'a> = {
@@ -90,8 +90,8 @@ let makeWithEquals = (
 
   // Set the ref so recompute can access the signal
   signalRef := signal
-  subs.lastGlobalVersion = Core.globalVersion.contents
-  Core.clearSubsDirty(subs)
+  subs.lastGlobalVersion = Signals__Core.globalVersion.contents
+  Signals__Core.clearSubsDirty(subs)
 
   signal
 }
@@ -107,5 +107,5 @@ let make = (
   }
 
 let dispose = (signal: Signals__Signal.t<'a>): unit => {
-  Core.clearSubsDeps(signal.subs)
+  Signals__Core.clearSubsDeps(signal.subs)
 }
