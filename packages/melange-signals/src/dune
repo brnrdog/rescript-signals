@@ -1,0 +1,8 @@
+(include_subdirs unqualified)
+
+; The core is plain OCaml (Stdlib only), so it compiles both to JavaScript via
+; Melange and to native/bytecode — the latter lets the logic suite run without
+; a Melange toolchain (see ../test).
+(library
+ (name signals)
+ (modes melange native))

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>melange-signals — counter demo</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 3rem auto; max-width: 28rem; }
+      .row { display: flex; gap: 0.75rem; align-items: baseline; margin: 0.5rem 0; }
+      .label { width: 7rem; color: #666; }
+      .value { font-variant-numeric: tabular-nums; font-weight: 600; }
+      button { font-size: 1rem; padding: 0.3rem 0.8rem; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <h1>melange-signals</h1>
+    <p>A Signal, two Computeds and three Effects keeping the DOM in sync.</p>
+
+    <div class="row"><span class="label">count</span><span id="count" class="value">0</span></div>
+    <div class="row"><span class="label">doubled</span><span id="doubled" class="value">0</span></div>
+    <div class="row"><span class="label">parity</span><span id="parity" class="value">even</span></div>
+
+    <div class="row">
+      <button id="dec">−1</button>
+      <button id="inc">+1</button>
+      <button id="reset">reset</button>
+    </div>
+
+    <!-- Built by the npm "demo" script (dune build @melange + esbuild bundle). -->
+    <script type="module" src="./bundle.js"></script>
+  </body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "melange-signals",
+  "version": "0.1.0",
+  "description": "Proof-of-concept reactive Signals (Signal, Computed, Effect + scheduler) in OCaml + Melange, targeting the browser.",
+  "scripts": {
+    "build": "dune build @melange",
+    "test": "dune test",
+    "demo": "dune build @melange && npx --yes esbuild _build/default/demo/output/demo/app.js --bundle --format=esm --outfile=demo/bundle.js"
+  },
+  "keywords": ["ocaml", "melange", "signals", "reactivity", "state"],
+  "author": "Bernardo Gurgel <brnrdog@hey.com>",
+  "license": "SEE LICENSE IN LICENSE"
+}

@@ -1,0 +1,7 @@
+; Compiles app.ml (and the signals library) to JavaScript ES modules under
+; demo/output/. Bundle the emitted entry for the browser with esbuild — see
+; the npm "demo" script.
+(melange.emit
+ (target output)
+ (libraries signals)
+ (module_systems es6))
