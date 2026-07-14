@@ -104,7 +104,9 @@ A reproducible test case helps us understand and fix the issue faster!
 
 ## Testing
 
-We use a simple custom test framework. Tests are located in the `tests/` directory.
+We use [zekr](https://github.com/brnrdog/zekr) for testing. Test files live in
+the `tests/` directory and are named with a `.test.res` suffix
+(e.g. `Signal.test.res`).
 
 ### Running Tests
 
@@ -112,20 +114,25 @@ We use a simple custom test framework. Tests are located in the `tests/` directo
 npm test
 ```
 
+`npm test` compiles with ReScript and then runs the `zekr` CLI, which discovers
+every `*.test.res` file and runs each one in its own process.
+
 ### Writing Tests
 
-See existing tests in `tests/` for examples:
+Create a `*.test.res` file in `tests/`. Suites built with `Suite.make` register
+themselves with zekr automatically, so the CLI picks them up — no explicit
+runner call is needed. See existing tests in `tests/` for examples:
 
 ```rescript
-open TestFramework
+open Zekr
 open Signals
 
-let tests = suite(
+let tests = Suite.make(
   "My Feature Tests",
   [
-    test("should do something", () => {
+    Test.make("should do something", () => {
       let signal = Signal.make(42)
-      assertEqual(Signal.peek(signal), 42, ~message="Should equal 42")
+      Assert.equal(Signal.peek(signal), 42, ~message="Should equal 42")
     }),
   ],
 )
@@ -137,22 +144,23 @@ When fixing bugs or adding features, include tests that demonstrate:
 
 - **The specific scenario that was broken**:
   ```rescript
-  test("computed updates when last subscriber removed during rerun", () => {
+  Test.make("computed updates when last subscriber removed during rerun", () => {
     let base = Signal.make(0)
     let computed = Computed.make(() => Signal.get(base) * 2)
-    let cleanup = ref(None)
 
-    let _effect = Effect.make(() => {
+    let disposer = Effect.runWithDisposer(() => {
       if Signal.get(base) > 5 {
         // Stop reading computed after base > 5
         ()
       } else {
         ignore(Signal.get(computed))
       }
+      None
     })
 
     Signal.set(base, 10) // Computed should be disposed here
-    assertTrue(true, ~message="Should not crash on disposal")
+    disposer.dispose()
+    Assert.isTrue(true, ~message="Should not crash on disposal")
   })
   ```
 

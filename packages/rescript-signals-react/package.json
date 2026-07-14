@@ -17,7 +17,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "rescript && node tests/SignalsReact_test.res.mjs",
+    "test": "rescript && zekr --dir tests",
     "build": "rescript",
     "clean": "rescript clean",
     "prepack": "node scripts/prepack.cjs",
