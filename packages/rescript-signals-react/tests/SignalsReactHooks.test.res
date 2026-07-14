@@ -482,15 +482,5 @@ module EdgeCaseTest = {
   )
 }
 
-// ---------------------------------------------------------------------------
-// Run all suites
-// ---------------------------------------------------------------------------
-
-Runner.runSuites([
-  UseSignalValueTest.suite,
-  UseSignalTest.suite,
-  UseComputedTest.suite,
-  UseComputedWithDepsTest.suite,
-  UseSignalEffectTest.suite,
-  EdgeCaseTest.suite,
-])
+// Suites register themselves with zekr on module evaluation, so the `zekr`
+// CLI discovers and runs them — no explicit Runner call needed.

@@ -20,6 +20,6 @@
     "rescript": "^12.0.0",
     "semantic-release": "^25.0.2",
     "semantic-release-monorepo": "^8.0.2",
-    "zekr": "^2.0.0"
+    "zekr": "^2.1.0-beta.2"
   }
 }
