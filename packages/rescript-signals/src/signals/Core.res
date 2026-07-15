@@ -5,6 +5,10 @@
 let flag_dirty = 1
 let flag_pending = 2
 let flag_running = 4
+// Manual observers are driven externally (e.g. by a React render). When a
+// dependency changes they are notified via `run` but NOT auto-retracked by the
+// scheduler; the external driver re-establishes deps by calling Scheduler.track.
+let flag_manual = 8
 
 // Global tracking version
 let trackingVersion: ref<int> = ref(0)
@@ -125,6 +129,8 @@ let isDirty = (o: observer): bool => Int.bitwiseAnd(o.flags, flag_dirty) !== 0
 let setDirty = (o: observer): unit => o.flags = Int.bitwiseOr(o.flags, flag_dirty)
 let clearDirty = (o: observer): unit =>
   o.flags = Int.bitwiseAnd(o.flags, Int.bitwiseNot(flag_dirty))
+let isManualObs = (o: observer): bool => Int.bitwiseAnd(o.flags, flag_manual) !== 0
+let setManualObs = (o: observer): unit => o.flags = Int.bitwiseOr(o.flags, flag_manual)
 let isPending = (o: observer): bool => Int.bitwiseAnd(o.flags, flag_pending) !== 0
 let setPending = (o: observer): unit => o.flags = Int.bitwiseOr(o.flags, flag_pending)
 let clearPending = (o: observer): unit =>

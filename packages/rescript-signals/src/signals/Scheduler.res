@@ -427,6 +427,63 @@ let retrackEffect = (observer: Core.observer): unit => {
   }
 }
 
+// Run `body` as the current observer, reconciling this observer's dependency
+// set to exactly the signals read during `body`. Mirrors retrackEffect, but the
+// body is supplied externally (e.g. a React render) and its result is returned.
+// Used by manual observers to establish deps during the render that displays
+// them — a single tracking pass rather than a separate recompute.
+let track = (observer: Core.observer, body: unit => 'a): 'a => {
+  let oldLevel = observer.level
+  let previousTrackingVersion = currentTrackingVersion.contents
+
+  Core.trackingVersion := Core.trackingVersion.contents + 1
+  currentTrackingVersion.contents = Core.trackingVersion.contents
+
+  Core.clearPending(observer)
+
+  let prev = currentObserver.contents
+  let prevCursor = currentObserverDepCursor.contents
+  currentObserver := Some(observer)
+  currentObserverDepCursor := observer.firstDep
+
+  let result = try {
+    let r = body()
+
+    // After the body: unlink stale deps (version != current)
+    let link = ref(observer.firstDep)
+    while link.contents !== None {
+      switch link.contents {
+      | Some(l) =>
+        let next = l.nextDep
+        if l.lastTrackedVersion !== currentTrackingVersion.contents {
+          Core.unlinkFromSubs(l)
+          Core.unlinkFromDeps(observer, l)
+        }
+        link := next
+      | None => ()
+      }
+    }
+
+    Core.clearDirty(observer)
+    currentObserver := prev
+    currentObserverDepCursor := prevCursor
+    currentTrackingVersion.contents = previousTrackingVersion
+    r
+  } catch {
+  | exn =>
+    currentObserver := prev
+    currentObserverDepCursor := prevCursor
+    currentTrackingVersion.contents = previousTrackingVersion
+    throw(exn)
+  }
+
+  if oldLevel == 0 {
+    observer.level = computeLevel(observer)
+  }
+
+  result
+}
+
 // Flush pending observers
 let flush = (): unit => {
   flushing := true
@@ -465,7 +522,15 @@ let flush = (): unit => {
         let i = ref(0)
         while i.contents < effectsLength {
           switch pendingEffects->Array.get(i.contents) {
-          | Some(effect) => retrackEffect(effect)
+          | Some(effect) =>
+            if Core.isManualObs(effect) {
+              // Notify-only: the external driver (e.g. React) re-establishes
+              // deps via `track` on its next render. Do not retrack here.
+              Core.clearPending(effect)
+              effect.run()
+            } else {
+              retrackEffect(effect)
+            }
           | None => ()
           }
           i := i.contents + 1
