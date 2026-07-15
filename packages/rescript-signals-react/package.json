@@ -17,7 +17,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "rescript && node tests/SignalsReact_test.res.mjs",
+    "test": "rescript && node tests/SignalsReact_test.res.mjs && node tests/SignalsReactAuto_test.res.mjs",
     "build": "rescript",
     "clean": "rescript clean",
     "prepack": "node scripts/prepack.cjs",
