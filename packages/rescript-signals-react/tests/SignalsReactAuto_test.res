@@ -124,20 +124,20 @@ module AutoTrackTest = {
           },
         ])
       }),
-      Test.make("cost: thunk runs twice per update (tracking + display)", () => {
+      Test.make("cost: single pass — thunk runs once per update", () => {
         let a = Signal.make(0)
         let b = Signal.make(0)
         let rc = ref(0)
         let r = renderComponent(<Sum a b renderCount=rc />)
         rendered := Some(r)
-        // Mount: one display pass + one tracking-effect pass = 2
+        // Mount: the display render is the tracking pass = 1
         let afterMount = rc.contents
         act(() => Signal.set(a, 1))
-        // Each update: one tracking-effect re-run + one React display render = 2
+        // Each update: one React render, which re-establishes deps = 1
         let afterOneUpdate = rc.contents
         Assert.combineResults([
-          Assert.equal(afterMount, 2),
-          Assert.equal(afterOneUpdate - afterMount, 2),
+          Assert.equal(afterMount, 1),
+          Assert.equal(afterOneUpdate - afterMount, 1),
         ])
       }),
       Test.make("stops notifying after unmount", () => {
