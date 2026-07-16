@@ -79,3 +79,30 @@ let useTracked = (render: unit => 'a): 'a => {
   // Single pass: this render establishes the dependency set and produces output.
   Tracking.track(store.scope, render)
 }
+
+// ---------------------------------------------------------------------------
+// Explicit-dependency form — the hand-written equivalent of an
+// `@tracked(a, b)` annotation (no transform required).
+//
+//   @react.component
+//   let make = (~a, ~b, ~c) => {
+//     useSignals([dep(a), dep(b)])       // subscribe to a and b
+//     <div> {React.string(Int.toString(Signal.get(a) + Signal.get(b)))}
+//           {React.string(c)} </div>     // read them (and plain props) freely
+//   }
+//
+// You list the signal dependencies once, then read them anywhere in the body.
+// `dep` type-erases the heterogeneous signals so they fit in one array. Like a
+// React dependency array, this is explicit: a signal you read but forget to
+// list will not trigger a re-render. For automatic discovery, use `useTracked`.
+// ---------------------------------------------------------------------------
+
+type dep = unit => unit
+
+/** Wrap a signal as an untyped dependency for `useSignals`. */
+let dep = (signal: Signal.t<'a>): dep => () => Signal.get(signal)->ignore
+
+/** Subscribe the component to every signal in `deps` and re-render when any of
+    them changes. Reads in the body stay plain `Signal.get`. Dependencies are
+    reconciled each render, so a dynamic `deps` array is fine. */
+let useSignals = (deps: array<dep>): unit => useTracked(() => deps->Array.forEach(d => d()))

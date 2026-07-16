@@ -162,4 +162,97 @@ module AutoTrackTest = {
   )
 }
 
-Runner.runSuites([AutoTrackTest.suite])
+// ---------------------------------------------------------------------------
+// Explicit-dependency form: useSignals([dep(a), dep(b)])  (~ @tracked(a, b))
+// ---------------------------------------------------------------------------
+
+module ExplicitDepsTest = {
+  // Lists a and b, reads a, b, and a plain string prop c.
+  module Listed = {
+    @react.component
+    let make = (~a: Signal.t<int>, ~b: Signal.t<int>, ~c: string) => {
+      SignalsReactAuto.useSignals([SignalsReactAuto.dep(a), SignalsReactAuto.dep(b)])
+      <div> {React.string(`${Int.toString(Signal.get(a) + Signal.get(b))}-${c}`)} </div>
+    }
+  }
+
+  module Parent = {
+    @react.component
+    let make = (~a: Signal.t<int>, ~b: Signal.t<int>) => {
+      let (c, setC) = React.useState(() => "x")
+      <div>
+        <Listed a b c />
+        <button onClick={_ => setC(_ => "y")}> {React.string("setc")} </button>
+      </div>
+    }
+  }
+
+  // Reads `unlisted` but only lists `listed` — demonstrates the dep-array
+  // footgun: the unlisted read does not cause a re-render.
+  module ForgotToList = {
+    @react.component
+    let make = (~listed: Signal.t<int>, ~unlisted: Signal.t<int>) => {
+      SignalsReactAuto.useSignals([SignalsReactAuto.dep(listed)])
+      <div> {React.string(`${Int.toString(Signal.get(listed))}/${Int.toString(Signal.get(unlisted))}`)} </div>
+    }
+  }
+
+  let rendered = ref(None)
+
+  let suite = Suite.make(
+    "useSignals (explicit deps)",
+    [
+      Test.make("re-renders when any listed signal changes", () => {
+        let a = Signal.make(1)
+        let b = Signal.make(2)
+        let r = renderComponent(<Parent a b />)
+        rendered := Some(r)
+        Assert.combineResults([
+          Assert.contains(r.container->textContent, "3-x"),
+          {
+            act(() => Signal.set(a, 10))
+            Assert.contains(r.container->textContent, "12-x")
+          },
+          {
+            act(() => Signal.set(b, 20))
+            Assert.contains(r.container->textContent, "30-x")
+          },
+          // plain prop still flows through
+          {
+            act(() => r.container->querySelector("button")->click)
+            Assert.contains(r.container->textContent, "30-y")
+          },
+        ])
+      }),
+      Test.make("does NOT re-render for a read-but-unlisted signal", () => {
+        let listed = Signal.make(1)
+        let unlisted = Signal.make(1)
+        let r = renderComponent(<ForgotToList listed unlisted />)
+        rendered := Some(r)
+        Assert.combineResults([
+          Assert.contains(r.container->textContent, "1/1"),
+          // unlisted change: read value is stale until a listed change re-renders
+          {
+            act(() => Signal.set(unlisted, 99))
+            Assert.contains(r.container->textContent, "1/1")
+          },
+          // listed change re-renders and picks up the latest unlisted value too
+          {
+            act(() => Signal.set(listed, 2))
+            Assert.contains(r.container->textContent, "2/99")
+          },
+        ])
+      }),
+    ],
+    ~afterEach=() => {
+      switch rendered.contents {
+      | Some(r) =>
+        cleanup(r)
+        rendered := None
+      | None => ()
+      }
+    },
+  )
+}
+
+Runner.runSuites([AutoTrackTest.suite, ExplicitDepsTest.suite])
