@@ -203,9 +203,9 @@ lowest-bookkeeping tier: no dependency list, no per-signal hook.
 > fresh props, single-pass cost = mount 1 / update +1, unmount disposal), commit
 > `feat(react): single-pass auto-tracking` (+ the earlier spike it replaced).
 
-### Future — `@tracked` annotation (deferred)
+### The `@tracked` annotation
 
-An attribute form is an appealing shorthand:
+The headline ergonomic: an attribute that removes the call ceremony entirely.
 
 ```rescript
 @react.component
@@ -215,19 +215,32 @@ let make = (~a, ~b, ~c) => {
 }
 ```
 
-A bare attribute is inert — the ReScript compiler erases unknown attributes
-before JS emission, so nothing subscribes. Realizing it requires a ReScript PPX,
-which in ReScript is a native binary pinned to the compiler's AST and re-audited
-each release — a real, ongoing maintenance cost.
-
-Crucially, whatever the PPX emitted would just be **sugar** over the tiers above:
+`@tracked` is pure **sugar** over the tiers above:
 
 - `@tracked(a, b)` → `useSignals([dep(a), dep(b)])` (Tier 2)
 - `@tracked` (no args) → `useTracked(() => body)` (Tier 3)
 
-Because both targets already exist and are tested, the annotation is optional and
-can be decided later based on which tier users actually reach for.
-**Recommendation:** do not build it now.
+Because a bare attribute is inert — the ReScript compiler erases unknown
+attributes before JS emission — something must expand it. There are two vehicles:
+
+- **Source preprocessor (POC, implemented).** `@tracked` is valid-but-ignored
+  ReScript, so annotated files still parse. A small Node transform
+  (`scripts/tracked-preprocess.mjs`) expands the annotation into the runtime
+  calls above before ReScript compiles. Annotated sources live in `tests/tracked/`
+  and are generated into `tests/generated/`. Caveat of any text transform: the
+  bare-form brace matching is naive (no string/comment skipping); the explicit
+  `@tracked(...)` form is a pure token replacement and is robust. Annotations
+  must sit alone on their own line.
+- **Native ReScript PPX (production path).** Operates on the compiler AST, so no
+  text-matching caveats. Cost: a native binary pinned to the compiler's AST and
+  re-audited each release. Recommended only once the annotation's value is proven.
+
+Because the expansion targets (Tiers 2/3) are already tested, either vehicle is a
+thin layer — the runtime does the real work.
+
+> **Status:** implemented as a source preprocessor and passing — a transform
+> unit test (4 cases) plus an end-to-end test rendering `@tracked`-annotated
+> components (2 cases), commit `feat(react): prototype @tracked annotation`.
 
 ## Tradeoffs
 
@@ -256,6 +269,8 @@ On branch `claude/rescript-signals-react-ergonomics-j9oijx`:
 - **React Tier 3:** `useTracked` single-pass — implemented, 5/5 tests green,
   single-pass cost pinned by test.
 - **React Tier 2:** `useSignals` / `dep` — implemented, 2/2 tests green.
+- **`@tracked` annotation:** implemented as a source preprocessor — transform
+  unit test (4/4) + end-to-end render test (2/2) green.
 - **React Tier 1:** designed only (`useSignalState`, combinators, `useComputed`
   de-footgun) — not yet implemented.
 
@@ -273,8 +288,9 @@ keep the stable `SignalsReact` surface untouched during evaluation.
 3. **Promote Tier 2/3** from `SignalsReactAuto` into `SignalsReact` (or a
    `SignalsReact.Auto` submodule) marked experimental, with the render-phase
    caveat documented, once real `<StrictMode>` / concurrent tests are added.
-4. **Revisit the `@tracked` annotation** only if adoption data shows it saves
-   enough over Tiers 2/3 to justify a compiler plugin.
+4. **Harden `@tracked`.** The source-preprocessor POC proves the ergonomics.
+   Decide whether to ship it (a build step) or invest in a native ReScript PPX
+   (no text-matching caveats, higher maintenance) based on adoption.
 
 ## Backward compatibility
 

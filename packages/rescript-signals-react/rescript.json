@@ -8,6 +8,10 @@
     {
       "dir": "tests",
       "type": "dev"
+    },
+    {
+      "dir": "tests/generated",
+      "type": "dev"
     }
   ],
   "package-specs": {

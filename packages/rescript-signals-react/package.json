@@ -17,8 +17,9 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "rescript && node tests/SignalsReact_test.res.mjs && node tests/SignalsReactAuto_test.res.mjs",
-    "build": "rescript",
+    "generate:tracked": "node scripts/tracked-preprocess.mjs tests/tracked tests/generated",
+    "test": "node scripts/tracked-preprocess.test.mjs && npm run generate:tracked && rescript && node tests/SignalsReact_test.res.mjs && node tests/SignalsReactAuto_test.res.mjs && node tests/generated/Tracked_ppx_test.res.mjs",
+    "build": "npm run generate:tracked && rescript",
     "clean": "rescript clean",
     "prepack": "node scripts/prepack.cjs",
     "postpack": "node scripts/postpack.cjs",

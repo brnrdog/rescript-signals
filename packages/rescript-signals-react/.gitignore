@@ -24,3 +24,6 @@ coverage/
 
 # OS
 Thumbs.db
+
+# @tracked generated sources (build artifacts)
+tests/generated/*.res
