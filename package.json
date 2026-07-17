@@ -2,9 +2,9 @@
   "private": true,
   "workspaces": ["packages/*"],
   "scripts": {
-    "build": "npm run build --workspaces",
-    "test": "npm run test --workspaces",
-    "clean": "npm run clean --workspaces",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "clean": "npm run clean --workspaces --if-present",
     "release": "npm run release --workspace=packages/rescript-signals && npm run release --workspace=packages/rescript-signals-react",
     "prepare": "husky"
   },

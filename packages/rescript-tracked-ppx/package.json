@@ -1,0 +1,9 @@
+{
+  "name": "rescript-tracked-ppx",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Native ReScript PPX expanding the @tracked annotation.",
+  "scripts": {
+    "build": "sh build.sh"
+  }
+}

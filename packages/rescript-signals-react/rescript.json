@@ -10,6 +10,7 @@
       "type": "dev"
     }
   ],
+  "ppx-flags": ["rescript-tracked-ppx/ppx"],
   "package-specs": {
     "module": "esmodule",
     "in-source": true
