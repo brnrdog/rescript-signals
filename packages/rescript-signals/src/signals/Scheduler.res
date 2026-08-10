@@ -73,6 +73,11 @@ let trackDepFromComputed = (computedSubs: Core.subs, sourceSubs: Core.subs): uni
   let computedObserver: Core.observer = Obj.magic(computedSubs)
   // A cold computed records what it depends on but does not attach to it.
   let isHot = Core.isLinked(computedSubs)
+  // Only a cold computed reads lastSourceVersion, so a hot one skips maintaining
+  // it - this runs on every dependency read of every recompute, the hottest path
+  // there is. Versions only ever grow, so the stale stamp a computed carries out
+  // of a hot spell can make the first read after it goes cold recompute once too
+  // often, never miss an update.
 
   if computedSubs.firstDep === None {
     let newLink: Core.link = Core.makeLink(sourceSubs, computedObserver)
@@ -91,14 +96,18 @@ let trackDepFromComputed = (computedSubs: Core.subs, sourceSubs: Core.subs): uni
     | Some(cursor) =>
       if cursor.subs === sourceSubs && cursor.observer === computedObserver {
         cursor.lastTrackedVersion = currentVersion
-        cursor.lastSourceVersion = sourceSubs.version
+        if !isHot {
+          cursor.lastSourceVersion = sourceSubs.version
+        }
         fastPathFound.contents = true
       } else {
         switch cursor.nextDep {
         | Some(nextDep) =>
           if nextDep.subs === sourceSubs && nextDep.observer === computedObserver {
             nextDep.lastTrackedVersion = currentVersion
-            nextDep.lastSourceVersion = sourceSubs.version
+            if !isHot {
+              nextDep.lastSourceVersion = sourceSubs.version
+            }
             currentComputedDepCursor := Some(nextDep)
             fastPathFound.contents = true
           }
@@ -113,7 +122,9 @@ let trackDepFromComputed = (computedSubs: Core.subs, sourceSubs: Core.subs): uni
       | Some(lastSubLink) =>
         if lastSubLink.lastTrackedVersion === currentVersion && lastSubLink.observer === computedObserver {
           lastSubLink.lastTrackedVersion = currentVersion
-          lastSubLink.lastSourceVersion = sourceSubs.version
+          if !isHot {
+            lastSubLink.lastSourceVersion = sourceSubs.version
+          }
           currentComputedDepCursor := Some(lastSubLink)
           fastPathFound.contents = true
         }
@@ -131,7 +142,9 @@ let trackDepFromComputed = (computedSubs: Core.subs, sourceSubs: Core.subs): uni
         | Some(l) =>
           if l.subs === sourceSubs {
             l.lastTrackedVersion = currentVersion
-            l.lastSourceVersion = sourceSubs.version
+            if !isHot {
+              l.lastSourceVersion = sourceSubs.version
+            }
             foundLink := Some(l)
             found := true
           } else {
