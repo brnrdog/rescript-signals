@@ -63,7 +63,7 @@ Signal.update(count, n => n + 1) // Update based on current value
 
 ### Computed
 
-Derived reactive values that update automatically. Computed values are lazily evaluated and cached until their dependencies change.
+Derived reactive values that update automatically. Computed values are cached until one of their dependencies changes.
 
 ```rescript
 let firstName = Signal.make("Ada")
