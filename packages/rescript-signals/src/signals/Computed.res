@@ -112,6 +112,6 @@ let make = (
 let dispose = (signal: Signal.t<'a>): unit => {
   let subs = signal.subs
   Core.clearSubsDeps(subs)
-  Core.clearLinked(subs)
+  Core.markDetached(subs)
   Core.setSubsDirty(subs)
 }
