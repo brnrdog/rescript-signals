@@ -106,6 +106,12 @@ let make = (
   | None => makeWithoutEquals(compute, ~name?)
   }
 
+// Computeds detach from their sources on their own once they lose their last
+// subscriber, so this is only needed to release one that is still subscribed.
+// The computed stays usable: the next read rebuilds its dependencies.
 let dispose = (signal: Signal.t<'a>): unit => {
-  Core.clearSubsDeps(signal.subs)
+  let subs = signal.subs
+  Core.clearSubsDeps(subs)
+  Core.clearLinked(subs)
+  Core.setSubsDirty(subs)
 }

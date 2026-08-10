@@ -20,7 +20,7 @@ let make = () => {
     </div>
     <Typography
       text={static(
-        "Creates a computed value from a function. The function is called lazily and cached until a dependency changes.",
+        "Creates a computed value from a function. The function runs once to establish dependencies, then the value is cached until a dependency changes.",
       )}
     />
     <CodeBlock
@@ -85,14 +85,19 @@ Computed.get(quadrupled) // 20`}
     </div>
     <Typography
       text={static(
-        "Manually disposes a computed, removing all subscriptions. The computed will no longer track dependencies.",
+        "A computed subscribes to its sources only while something is subscribed to it, and detaches on its own once its last subscriber goes away. Dropping a computed you never subscribed to is enough — no cleanup call is needed.",
+      )}
+    />
+    <Typography
+      text={static(
+        "Computed.dispose detaches a computed that is still subscribed. It stays usable: the next read rebuilds its dependencies.",
       )}
     />
     <CodeBlock
       language="rescript"
       code={`let computed = Computed.make(() => Signal.get(count) * 2)
 
-// Later, when no longer needed
+// Only needed to detach a computed that still has subscribers
 Computed.dispose(computed)`}
     />
     <Separator />
@@ -101,8 +106,8 @@ Computed.dispose(computed)`}
       <a class="anchor-link" href="#key-characteristics"> {"#"->Component.text} </a>
     </div>
     <ul style="line-height: 1.8; color: var(--basefn-text-secondary);">
-      <li> <strong> {"Lazy Evaluation"->Component.text} </strong> {" — Computed values are not calculated until they are first read. This avoids unnecessary computation."->Component.text} </li>
       <li> <strong> {"Automatic Caching"->Component.text} </strong> {" — Once calculated, the value is cached until a dependency changes. Multiple reads return the cached value."->Component.text} </li>
+      <li> <strong> {"Self-Releasing"->Component.text} </strong> {" — A computed attaches to its sources only while it has subscribers, and detaches when the last one goes away. Deriving values inline is safe: a computed you drop keeps nothing alive and costs its sources nothing on write."->Component.text} </li>
       <li> <strong> {"Dependency Tracking"->Component.text} </strong> {" — Dependencies are automatically tracked when Signal.get() or Computed.get() is called inside the computation function."->Component.text} </li>
       <li> <strong> {"Glitch-Free"->Component.text} </strong> {" — Updates are batched and computed values are recalculated in topological order to prevent intermediate inconsistent states."->Component.text} </li>
     </ul>

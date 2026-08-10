@@ -5,6 +5,9 @@
 let flag_dirty = 1
 let flag_pending = 2
 let flag_running = 4
+// Set on a computed while it is attached to its own sources ("hot").
+// A computed is hot exactly while it has at least one subscriber.
+let flag_linked = 8
 
 // Global tracking version
 let trackingVersion: ref<int> = ref(0)
@@ -27,6 +30,12 @@ module rec Link: {
     mutable prevSub: option<Link.t>,
     // Version stamp for duplicate detection within a compute cycle
     mutable lastTrackedVersion: int,
+    // Source's subs.version when this dependency was last read. Lets a cold
+    // computed decide whether it is stale without receiving notifications.
+    mutable lastSourceVersion: int,
+    // Whether this link currently sits in the source's subscriber chain.
+    // A cold computed keeps its dependency chain but detaches every link.
+    mutable attached: bool,
   }
 } = Link
 
@@ -140,6 +149,12 @@ let setSubsPending = (s: subs): unit => s.flags = Int.bitwiseOr(s.flags, flag_pe
 let clearSubsPending = (s: subs): unit =>
   s.flags = Int.bitwiseAnd(s.flags, Int.bitwiseNot(flag_pending))
 
+// Whether a computed is currently attached to its sources
+let isLinked = (s: subs): bool => Int.bitwiseAnd(s.flags, flag_linked) !== 0
+let setLinked = (s: subs): unit => s.flags = Int.bitwiseOr(s.flags, flag_linked)
+let clearLinked = (s: subs): unit =>
+  s.flags = Int.bitwiseAnd(s.flags, Int.bitwiseNot(flag_linked))
+
 // Check if subs is a computed
 let isComputed = (s: subs): bool => s.compute !== None
 
@@ -153,22 +168,57 @@ let makeLink = (sourceSubs: subs, linkedObserver: observer): link => {
     nextSub: None,
     prevSub: None,
     lastTrackedVersion: 0,
+    lastSourceVersion: -1,
+    attached: false,
   }
 }
 
-// Add link to signal's subscriber list
-let linkToSubs = (subs: subs, link: link): unit => {
-  link.prevSub = subs.last
-  link.nextSub = None
-  switch subs.last {
-  | Some(last) => last.nextSub = Some(link)
-  | None => subs.first = Some(link)
-  }
-  subs.last = Some(link)
+// Add link to signal's subscriber list.
+// If this is the first subscriber of a cold computed, that computed goes hot:
+// it re-attaches to its own sources so notifications can reach it again.
+let rec linkToSubs = (subs: subs, link: link): unit => {
+  if !link.attached {
+    link.attached = true
+    let wasEmpty = subs.first === None
 
-  let linkedSubs = (Obj.magic(link.observer): subs)
-  if isComputed(linkedSubs) {
-    subs.computedSubscriberCount = subs.computedSubscriberCount + 1
+    link.prevSub = subs.last
+    link.nextSub = None
+    switch subs.last {
+    | Some(last) => last.nextSub = Some(link)
+    | None => subs.first = Some(link)
+    }
+    subs.last = Some(link)
+
+    let linkedSubs = (Obj.magic(link.observer): subs)
+    if isComputed(linkedSubs) {
+      subs.computedSubscriberCount = subs.computedSubscriberCount + 1
+    }
+
+    if wasEmpty && isComputed(subs) && !isLinked(subs) {
+      attachToSources(subs)
+    }
+  }
+}
+
+// Re-attach a computed to every source in its dependency chain.
+// The value needs no reconciliation here: attaching only ever happens from inside
+// Signal.get, which settles freshness before tracking, so a computed going hot is
+// already up to date. Marking it dirty would also be actively wrong - notifySubs
+// treats the dirty flag as its "already propagated" marker, so a computed dirtied
+// out of band swallows later notifications instead of passing them downstream.
+and attachToSources = (s: subs): unit => {
+  // Set first: guards against re-entering through the recursive linkToSubs below.
+  setLinked(s)
+
+  let link = ref(s.firstDep)
+  while link.contents !== None {
+    switch link.contents {
+    | Some(l) =>
+      let next = l.nextDep
+      linkToSubs(l.subs, l)
+      link := next
+    | None => ()
+    }
   }
 }
 
@@ -183,23 +233,51 @@ let linkToDeps = (observer: observer, link: link): unit => {
   observer.lastDep = Some(link)
 }
 
-// Remove link from subscriber list
-let unlinkFromSubs = (link: link): unit => {
-  let subs = link.subs
-  switch link.prevSub {
-  | Some(prev) => prev.nextSub = link.nextSub
-  | None => subs.first = link.nextSub
-  }
-  switch link.nextSub {
-  | Some(next) => next.prevSub = link.prevSub
-  | None => subs.last = link.prevSub
-  }
-  link.prevSub = None
-  link.nextSub = None
+// Remove link from subscriber list.
+// If this was the last subscriber of a computed, that computed goes cold:
+// it detaches from its own sources so neither it nor its cached value keeps
+// them alive, and so writes stop paying to walk over it.
+let rec unlinkFromSubs = (link: link): unit => {
+  if link.attached {
+    link.attached = false
+    let subs = link.subs
+    switch link.prevSub {
+    | Some(prev) => prev.nextSub = link.nextSub
+    | None => subs.first = link.nextSub
+    }
+    switch link.nextSub {
+    | Some(next) => next.prevSub = link.prevSub
+    | None => subs.last = link.prevSub
+    }
+    link.prevSub = None
+    link.nextSub = None
 
-  let linkedSubs = (Obj.magic(link.observer): subs)
-  if isComputed(linkedSubs) && subs.computedSubscriberCount > 0 {
-    subs.computedSubscriberCount = subs.computedSubscriberCount - 1
+    let linkedSubs = (Obj.magic(link.observer): subs)
+    if isComputed(linkedSubs) && subs.computedSubscriberCount > 0 {
+      subs.computedSubscriberCount = subs.computedSubscriberCount - 1
+    }
+
+    if subs.first === None && isComputed(subs) && isLinked(subs) {
+      detachFromSources(subs)
+    }
+  }
+}
+
+// Detach a computed from every source in its dependency chain.
+// The chain itself is preserved, so the computed can go hot again later.
+and detachFromSources = (s: subs): unit => {
+  // Clear first: guards against re-entering through the recursive unlink below.
+  clearLinked(s)
+
+  let link = ref(s.firstDep)
+  while link.contents !== None {
+    switch link.contents {
+    | Some(l) =>
+      let next = l.nextDep
+      unlinkFromSubs(l)
+      link := next
+    | None => ()
+    }
   }
 }
 

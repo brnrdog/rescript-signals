@@ -71,12 +71,17 @@ let addComputedToPending = (subs: Core.subs): unit => {
 // Track a dependency from a computed (subs tracks subs)
 let trackDepFromComputed = (computedSubs: Core.subs, sourceSubs: Core.subs): unit => {
   let computedObserver: Core.observer = Obj.magic(computedSubs)
+  // A cold computed records what it depends on but does not attach to it.
+  let isHot = Core.isLinked(computedSubs)
 
   if computedSubs.firstDep === None {
     let newLink: Core.link = Core.makeLink(sourceSubs, computedObserver)
     newLink.lastTrackedVersion = currentTrackingVersion.contents
+    newLink.lastSourceVersion = sourceSubs.version
     Core.linkToSubsDeps(computedSubs, newLink)
-    Core.linkToSubs(sourceSubs, newLink)
+    if isHot {
+      Core.linkToSubs(sourceSubs, newLink)
+    }
     currentComputedDepCursor := Some(newLink)
   } else {
     let currentVersion = currentTrackingVersion.contents
@@ -86,12 +91,14 @@ let trackDepFromComputed = (computedSubs: Core.subs, sourceSubs: Core.subs): uni
     | Some(cursor) =>
       if cursor.subs === sourceSubs && cursor.observer === computedObserver {
         cursor.lastTrackedVersion = currentVersion
+        cursor.lastSourceVersion = sourceSubs.version
         fastPathFound.contents = true
       } else {
         switch cursor.nextDep {
         | Some(nextDep) =>
           if nextDep.subs === sourceSubs && nextDep.observer === computedObserver {
             nextDep.lastTrackedVersion = currentVersion
+            nextDep.lastSourceVersion = sourceSubs.version
             currentComputedDepCursor := Some(nextDep)
             fastPathFound.contents = true
           }
@@ -106,6 +113,7 @@ let trackDepFromComputed = (computedSubs: Core.subs, sourceSubs: Core.subs): uni
       | Some(lastSubLink) =>
         if lastSubLink.lastTrackedVersion === currentVersion && lastSubLink.observer === computedObserver {
           lastSubLink.lastTrackedVersion = currentVersion
+          lastSubLink.lastSourceVersion = sourceSubs.version
           currentComputedDepCursor := Some(lastSubLink)
           fastPathFound.contents = true
         }
@@ -123,6 +131,7 @@ let trackDepFromComputed = (computedSubs: Core.subs, sourceSubs: Core.subs): uni
         | Some(l) =>
           if l.subs === sourceSubs {
             l.lastTrackedVersion = currentVersion
+            l.lastSourceVersion = sourceSubs.version
             foundLink := Some(l)
             found := true
           } else {
@@ -136,8 +145,11 @@ let trackDepFromComputed = (computedSubs: Core.subs, sourceSubs: Core.subs): uni
       if !found.contents {
         let newLink: Core.link = Core.makeLink(sourceSubs, computedObserver)
         newLink.lastTrackedVersion = currentVersion
+        newLink.lastSourceVersion = sourceSubs.version
         Core.linkToSubsDeps(computedSubs, newLink)
-        Core.linkToSubs(sourceSubs, newLink)
+        if isHot {
+          Core.linkToSubs(sourceSubs, newLink)
+        }
         currentComputedDepCursor := Some(newLink)
       } else {
         currentComputedDepCursor := foundLink.contents
@@ -554,23 +566,60 @@ let notifySubs = (subs: Core.subs): unit => {
   }
 }
 
+let recomputeAndLevel = (subs: Core.subs): unit => {
+  let oldLevel = subs.level
+  runComputedCycle(subs, ~clearPending=false)
+
+  if oldLevel == 0 {
+    subs.level = computeSubsLevel(subs)
+  }
+}
+
 // Ensure a computed signal is fresh before reading (with link reuse)
-let ensureComputedFresh = (subs: Core.subs): unit => {
+let rec ensureComputedFresh = (subs: Core.subs): unit => {
   if Core.isComputed(subs) {
     if Core.isSubsDirty(subs) {
-      // Dirty without a newer global write means stale dirty flag only.
-      if subs.lastGlobalVersion === Core.globalVersion.contents {
+      // Hot computeds are attached to their sources, so notifications reach them
+      // and a set dirty flag is authoritative. Cold ones are told the same way
+      // when they are marked before detaching, or have never been computed.
+      if Core.isLinked(subs) && subs.lastGlobalVersion === Core.globalVersion.contents {
+        // Dirty without a newer global write means stale dirty flag only.
         Core.clearSubsDirty(subs)
       } else {
-        let oldLevel = subs.level
-        runComputedCycle(subs, ~clearPending=false)
-
-        if oldLevel == 0 {
-          subs.level = computeSubsLevel(subs)
-        }
+        recomputeAndLevel(subs)
+      }
+    } else if !Core.isLinked(subs) && subs.lastGlobalVersion !== Core.globalVersion.contents {
+      // Cold: nothing notified this computed, so being un-dirty proves nothing.
+      // No write anywhere since the last compute is the cheap way out; otherwise
+      // compare each source against the version we last read from it.
+      if sourcesChanged(subs) {
+        recomputeAndLevel(subs)
+      } else {
+        // Verified fresh - re-stamp so the next read takes the cheap path.
+        subs.lastGlobalVersion = Core.globalVersion.contents
       }
     }
   }
+}
+
+// Whether any source of a cold computed has moved since it was last read.
+// A source that is itself a cold computed has to be settled first.
+and sourcesChanged = (s: Core.subs): bool => {
+  let changed = ref(false)
+  let link = ref(s.firstDep)
+  while link.contents !== None && !changed.contents {
+    switch link.contents {
+    | Some(l) =>
+      ensureComputedFresh(l.subs)
+      if l.subs.version !== l.lastSourceVersion {
+        changed := true
+      } else {
+        link := l.nextDep
+      }
+    | None => ()
+    }
+  }
+  changed.contents
 }
 
 // Schedule an effect for execution
