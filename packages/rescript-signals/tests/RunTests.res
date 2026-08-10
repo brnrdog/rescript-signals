@@ -1,4 +1,10 @@
 open Zekr
 
 // Run all test suites
-Runner.runSuites([SignalTests.tests, ComputedTests.tests, EffectTests.tests])
+Runner.runSuites([
+  SignalTests.tests,
+  ComputedTests.tests,
+  EffectTests.tests,
+  LifecycleTests.tests,
+  PropertyTests.tests,
+])

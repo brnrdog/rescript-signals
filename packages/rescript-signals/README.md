@@ -63,7 +63,7 @@ Signal.update(count, n => n + 1) // Update based on current value
 
 ### Computed
 
-Derived reactive values that update automatically. Computed values are lazily evaluated and cached until their dependencies change.
+Derived reactive values that update automatically. Computed values are cached until one of their dependencies changes.
 
 ```rescript
 let firstName = Signal.make("Ada")
@@ -73,6 +73,19 @@ let fullName = Computed.make(() =>
   Signal.get(firstName) ++ " " ++ Signal.get(lastName)
 )
 ```
+
+A computed subscribes to its sources only while something is subscribed to it, and
+detaches once its last subscriber goes away. That makes it safe to derive values
+inline — in a render function, a helper, or anywhere called repeatedly:
+
+```rescript
+let label = (value: Signal.t<int>) =>
+  Computed.make(() => Signal.get(value)->Int.toString)
+```
+
+A computed you create and drop holds nothing open and adds no cost to writes on its
+sources. `Computed.dispose` exists to detach one that still has subscribers; it stays
+usable afterwards, since the next read rebuilds its dependencies.
 
 ### Effect
 

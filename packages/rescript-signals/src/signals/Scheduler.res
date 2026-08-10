@@ -71,12 +71,21 @@ let addComputedToPending = (subs: Core.subs): unit => {
 // Track a dependency from a computed (subs tracks subs)
 let trackDepFromComputed = (computedSubs: Core.subs, sourceSubs: Core.subs): unit => {
   let computedObserver: Core.observer = Obj.magic(computedSubs)
+  // Dependency reuse below stays exactly as cheap as it was before detaching
+  // existed: lastSourceVersion is not maintained here at all. Only a detached
+  // computed reads it, and ensureComputedFresh stamps the whole chain right
+  // after a detached recompute, which is O(deps) on a path that already ran the
+  // compute function.
 
   if computedSubs.firstDep === None {
     let newLink: Core.link = Core.makeLink(sourceSubs, computedObserver)
     newLink.lastTrackedVersion = currentTrackingVersion.contents
+    newLink.lastSourceVersion = sourceSubs.version
     Core.linkToSubsDeps(computedSubs, newLink)
-    Core.linkToSubs(sourceSubs, newLink)
+    // A detached computed records what it depends on but does not attach to it.
+    if !Core.isDetached(computedSubs) {
+      Core.linkToSubs(sourceSubs, newLink)
+    }
     currentComputedDepCursor := Some(newLink)
   } else {
     let currentVersion = currentTrackingVersion.contents
@@ -136,8 +145,11 @@ let trackDepFromComputed = (computedSubs: Core.subs, sourceSubs: Core.subs): uni
       if !found.contents {
         let newLink: Core.link = Core.makeLink(sourceSubs, computedObserver)
         newLink.lastTrackedVersion = currentVersion
+        newLink.lastSourceVersion = sourceSubs.version
         Core.linkToSubsDeps(computedSubs, newLink)
-        Core.linkToSubs(sourceSubs, newLink)
+        if !Core.isDetached(computedSubs) {
+          Core.linkToSubs(sourceSubs, newLink)
+        }
         currentComputedDepCursor := Some(newLink)
       } else {
         currentComputedDepCursor := foundLink.contents
@@ -554,23 +566,82 @@ let notifySubs = (subs: Core.subs): unit => {
   }
 }
 
-// Ensure a computed signal is fresh before reading (with link reuse)
-let ensureComputedFresh = (subs: Core.subs): unit => {
-  if Core.isComputed(subs) {
+let recomputeAndLevel = (subs: Core.subs): unit => {
+  let oldLevel = subs.level
+  runComputedCycle(subs, ~clearPending=false)
+
+  if oldLevel == 0 {
+    subs.level = computeSubsLevel(subs)
+  }
+}
+
+// Record where every source stands right now. A detached computed receives no
+// notifications, so these stamps are the only thing that later tells it whether
+// anything actually moved.
+let stampSources = (s: Core.subs): unit => {
+  let link = ref(s.firstDep)
+  while link.contents !== None {
+    switch link.contents {
+    | Some(l) =>
+      l.lastSourceVersion = l.subs.version
+      link := l.nextDep
+    | None => ()
+    }
+  }
+}
+
+// Ensure a computed signal is fresh before reading (with link reuse).
+// Plain signals and settled computeds carry no flags in the mask, so the common
+// read costs a single test - the same as before computeds could detach.
+let rec ensureComputedFresh = (subs: Core.subs): unit => {
+  if Int.bitwiseAnd(subs.flags, Core.flag_needs_settle) !== 0 && Core.isComputed(subs) {
+    let detached = Core.isDetached(subs)
     if Core.isSubsDirty(subs) {
-      // Dirty without a newer global write means stale dirty flag only.
-      if subs.lastGlobalVersion === Core.globalVersion.contents {
+      // An attached computed hears about every write, so a set dirty flag is
+      // authoritative. A detached one is told this way too, when it was marked
+      // before detaching or has never been computed.
+      if !detached && subs.lastGlobalVersion === Core.globalVersion.contents {
+        // Dirty without a newer global write means stale dirty flag only.
         Core.clearSubsDirty(subs)
       } else {
-        let oldLevel = subs.level
-        runComputedCycle(subs, ~clearPending=false)
-
-        if oldLevel == 0 {
-          subs.level = computeSubsLevel(subs)
+        recomputeAndLevel(subs)
+        if detached {
+          stampSources(subs)
         }
+      }
+    } else if subs.lastGlobalVersion !== Core.globalVersion.contents {
+      // Detached (the mask left nothing else it could be), so being un-dirty
+      // proves nothing. No write anywhere since the last compute is the cheap
+      // way out; otherwise compare each source against its recorded version.
+      if sourcesChanged(subs) {
+        recomputeAndLevel(subs)
+        stampSources(subs)
+      } else {
+        // Verified fresh - re-stamp so the next read takes the cheap path.
+        subs.lastGlobalVersion = Core.globalVersion.contents
       }
     }
   }
+}
+
+// Whether any source of a cold computed has moved since it was last read.
+// A source that is itself a cold computed has to be settled first.
+and sourcesChanged = (s: Core.subs): bool => {
+  let changed = ref(false)
+  let link = ref(s.firstDep)
+  while link.contents !== None && !changed.contents {
+    switch link.contents {
+    | Some(l) =>
+      ensureComputedFresh(l.subs)
+      if l.subs.version !== l.lastSourceVersion {
+        changed := true
+      } else {
+        link := l.nextDep
+      }
+    | None => ()
+    }
+  }
+  changed.contents
 }
 
 // Schedule an effect for execution
