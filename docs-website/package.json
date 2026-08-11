@@ -4,7 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "gen:data": "node scripts/gen-data.mjs",
+    "predev": "npm run gen:data",
     "dev": "rescript -w & vite",
+    "prebuild": "npm run gen:data",
     "build": "npm run res:build && npm run build:client && npm run build:server && npm run build:prerender",
     "build:client": "vite build",
     "build:server": "vite build --ssr src/EntryServer.res.mjs --outDir build/server",
@@ -16,7 +19,6 @@
   },
   "dependencies": {
     "@rescript/core": "^1.6.1",
-    "highlight.js": "^11.11.2",
     "rescript-signals": "^3.1.2",
     "xote": "7.1.0-beta.7"
   },

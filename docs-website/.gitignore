@@ -5,3 +5,6 @@ build
 *.res.mjs
 lib
 .bsb.lock
+
+# Written by scripts/gen-data.mjs on predev/prebuild.
+src/Generated__Data.res

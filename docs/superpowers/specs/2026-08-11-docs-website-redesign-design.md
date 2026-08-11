@@ -2,7 +2,8 @@
 
 **Date:** 2026-08-11
 **Scope:** `docs-website/`
-**Status:** approved design, ready for implementation planning
+**Status:** built. See "Changes made during implementation" at the end for where
+the result departs from the design as approved.
 
 ## Goal
 
@@ -307,3 +308,63 @@ colour schemes.
 9. Keyboard: every interactive element is reachable and shows a visible accent focus
    ring; the theme toggle and copy buttons have accessible labels.
 10. No horizontal scroll at 320px width; code blocks scroll within their own container.
+
+## Changes made during implementation
+
+Where the built result departs from the design as approved, and why.
+
+**The table of contents was removed.** It took the right third of the page and
+left a tall empty margin below itself. Each API module now carries its own index
+instead — a row of links to its members, under the module lead. The `active`
+signal survives, since the header nav still highlights the enclosing section.
+
+**No logo.** A mark was drawn — one source node, two dependents, the dependency
+graph the library builds — and used in the header and as the favicon. At wordmark
+size it read as a "<" rather than as a graph, so it was removed and the original
+favicon restored. The header is the wordmark alone.
+
+**The changelog is fetched from the GitHub Releases API at build time**, not read
+from a CHANGELOG file. Three sources were tried:
+
+- *The packaged CHANGELOG.md*, as the design specified. Rejected: it is missing
+  3.0.0 through 3.1.1 entirely, because semantic-release writes the changelog
+  into the published tarball without committing it back.
+- *Derived from the commits between release tags.* Rejected as wrong. Every
+  release tag here is lightweight, so tags carry no notes and the commit range
+  has to supply them — but the range between two core tags also contains the
+  React adapter's commits. That produced a rescript-signals 3.1.0 whose notes
+  claimed `remove signals-react namespace` as a breaking change of the core
+  package, with the React migration guide attached.
+- *GitHub Releases.* Correct, and curated: semantic-release publishes one
+  release per package, so filtering to this package's tags gives exactly its own
+  notes. Both tag schemes count — `rescript-signals-v*` since the monorepo split
+  and `v*` before it — while `rescript-signals-react-v*` is excluded.
+
+Fetching happens at build time rather than in the browser, so the changelog is
+in the prerendered HTML: indexable, instant, and unable to fail in front of a
+reader. Since a release would otherwise not reach the page until the next
+`docs-website/**` push, `.github/workflows/docs.yml` gained a
+`release: types: [published]` trigger, and passes `GITHUB_TOKEN` to lift the API
+rate limit. A rejected token is retried anonymously, so a stale token in a
+developer's shell cannot break the build.
+
+With no network the generator falls back to the packaged CHANGELOG.md and warns
+loudly. That path is tested and shares one parser with the API path, handling
+both heading formats — the older `fix:` bullet prefix and the newer
+`### Bug Fixes` grouping.
+
+**Getting started is a numbered sequence** rather than prose with subheadings.
+The three steps genuinely depend on each other in order, so the numbers carry
+information rather than decorating it.
+
+**Example values are Brazilian artists of the 60s and 70s** — Gal Costa, Elis
+Regina, Jorge Ben, Tim Maia — in place of Ada Lovelace and Alan Turing.
+
+**Releases are separated by stripes, not rules.** A one-line release and a
+release with a long note are equally easy to tell apart when each sits in its
+own band.
+
+**Criterion 8 is not met as written.** `styles.css` builds to 13.0 KB, not under
+10 KB: the numbered steps, module cards, member chips and two-column release list
+each carry their own rules. It replaces 45.6 KB (`styles.css` 37.9 KB plus
+`ui/ui.css` 7.7 KB) and gzips to 3.2 KB. Every other criterion is met.
