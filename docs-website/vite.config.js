@@ -12,6 +12,6 @@ export default defineConfig({
     preserveSymlinks: true,
   },
   ssr: {
-    noExternal: ["xote", "rescript-signals", "basefn"],
+    noExternal: ["xote", "rescript-signals"],
   },
 });

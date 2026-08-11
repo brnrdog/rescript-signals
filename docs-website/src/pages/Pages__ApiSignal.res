@@ -1,6 +1,6 @@
 open Xote
-open Xote.ReactiveProp
-open Basefn
+open Xote.MaybeSignal
+open Ui
 
 @jsx.component
 let make = () => {
@@ -12,11 +12,11 @@ let make = () => {
     <Separator />
     <div class="heading-anchor" id="creating-signals">
       <Typography text={static("Creating Signals")} variant={H2} />
-      <a class="anchor-link" href="#creating-signals"> {"#"->Component.text} </a>
+      <a class="anchor-link" href="#creating-signals"> {"#"->View.text} </a>
     </div>
     <div class="heading-anchor" id="signal-make">
       <Typography text={static("Signal.make(value)")} variant={H3} />
-      <a class="anchor-link" href="#signal-make"> {"#"->Component.text} </a>
+      <a class="anchor-link" href="#signal-make"> {"#"->View.text} </a>
     </div>
     <Typography text={static("Creates a new signal with an initial value.")} />
     <CodeBlock
@@ -27,18 +27,18 @@ let items = Signal.make(["a", "b", "c"])`}
     />
     <div class="heading-anchor" id="signal-make-named">
       <Typography text={static("Signal.make(~name, value)")} variant={H3} />
-      <a class="anchor-link" href="#signal-make-named"> {"#"->Component.text} </a>
+      <a class="anchor-link" href="#signal-make-named"> {"#"->View.text} </a>
     </div>
     <Typography text={static("Creates a named signal for debugging purposes.")} />
     <CodeBlock language="rescript" code={`let count = Signal.make(~name="counter", 0)`} />
     <Separator />
     <div class="heading-anchor" id="reading-signals">
       <Typography text={static("Reading Signals")} variant={H2} />
-      <a class="anchor-link" href="#reading-signals"> {"#"->Component.text} </a>
+      <a class="anchor-link" href="#reading-signals"> {"#"->View.text} </a>
     </div>
     <div class="heading-anchor" id="signal-get">
       <Typography text={static("Signal.get(signal)")} variant={H3} />
-      <a class="anchor-link" href="#signal-get"> {"#"->Component.text} </a>
+      <a class="anchor-link" href="#signal-get"> {"#"->View.text} </a>
     </div>
     <Typography
       text={static(
@@ -55,7 +55,7 @@ let doubled = Computed.make(() => Signal.get(count) * 2)`}
     />
     <div class="heading-anchor" id="signal-peek">
       <Typography text={static("Signal.peek(signal)")} variant={H3} />
-      <a class="anchor-link" href="#signal-peek"> {"#"->Component.text} </a>
+      <a class="anchor-link" href="#signal-peek"> {"#"->View.text} </a>
     </div>
     <Typography
       text={static(
@@ -72,17 +72,17 @@ let value = Signal.peek(count)`}
     <Separator />
     <div class="heading-anchor" id="updating-signals">
       <Typography text={static("Updating Signals")} variant={H2} />
-      <a class="anchor-link" href="#updating-signals"> {"#"->Component.text} </a>
+      <a class="anchor-link" href="#updating-signals"> {"#"->View.text} </a>
     </div>
     <div class="heading-anchor" id="signal-set">
       <Typography text={static("Signal.set(signal, value)")} variant={H3} />
-      <a class="anchor-link" href="#signal-set"> {"#"->Component.text} </a>
+      <a class="anchor-link" href="#signal-set"> {"#"->View.text} </a>
     </div>
     <Typography text={static("Sets a new value for the signal.")} />
     <CodeBlock language="rescript" code={`Signal.set(count, 10)`} />
     <div class="heading-anchor" id="signal-update">
       <Typography text={static("Signal.update(signal, fn)")} variant={H3} />
-      <a class="anchor-link" href="#signal-update"> {"#"->Component.text} </a>
+      <a class="anchor-link" href="#signal-update"> {"#"->View.text} </a>
     </div>
     <Typography text={static("Updates the signal value based on the previous value.")} />
     <CodeBlock
@@ -93,11 +93,11 @@ Signal.update(items, arr => Array.concat(arr, ["d"]))`}
     <Separator />
     <div class="heading-anchor" id="batching-updates">
       <Typography text={static("Batching Updates")} variant={H2} />
-      <a class="anchor-link" href="#batching-updates"> {"#"->Component.text} </a>
+      <a class="anchor-link" href="#batching-updates"> {"#"->View.text} </a>
     </div>
     <div class="heading-anchor" id="signal-batch">
       <Typography text={static("Signal.batch(fn)")} variant={H3} />
-      <a class="anchor-link" href="#signal-batch"> {"#"->Component.text} </a>
+      <a class="anchor-link" href="#signal-batch"> {"#"->View.text} </a>
     </div>
     <Typography
       text={static(
@@ -118,11 +118,11 @@ Signal.batch(() => {
     <Separator />
     <div class="heading-anchor" id="untracked-reads">
       <Typography text={static("Untracked Reads")} variant={H2} />
-      <a class="anchor-link" href="#untracked-reads"> {"#"->Component.text} </a>
+      <a class="anchor-link" href="#untracked-reads"> {"#"->View.text} </a>
     </div>
     <div class="heading-anchor" id="signal-untrack">
       <Typography text={static("Signal.untrack(fn)")} variant={H3} />
-      <a class="anchor-link" href="#signal-untrack"> {"#"->Component.text} </a>
+      <a class="anchor-link" href="#signal-untrack"> {"#"->View.text} </a>
     </div>
     <Typography
       text={static(

@@ -1,5 +1,5 @@
-open Xote.ReactiveProp
-open Basefn
+open Xote.MaybeSignal
+open Ui
 
 let baseUrl = "https://github.com/brnrdog/rescript-signals/edit/main/docs-website/src/pages/"
 

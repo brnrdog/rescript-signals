@@ -1,6 +1,6 @@
 open Xote
-open Xote.ReactiveProp
-open Basefn
+open Xote.MaybeSignal
+open Ui
 
 @jsx.component
 let make = () => {
@@ -12,11 +12,11 @@ let make = () => {
     <Separator />
     <div class="heading-anchor" id="creating-effects">
       <Typography text={static("Creating Effects")} variant={H2} />
-      <a class="anchor-link" href="#creating-effects"> {"#"->Component.text} </a>
+      <a class="anchor-link" href="#creating-effects"> {"#"->View.text} </a>
     </div>
     <div class="heading-anchor" id="effect-run">
       <Typography text={static("Effect.run(fn)")} variant={H3} />
-      <a class="anchor-link" href="#effect-run"> {"#"->Component.text} </a>
+      <a class="anchor-link" href="#effect-run"> {"#"->View.text} </a>
     </div>
     <Typography
       text={static(
@@ -38,7 +38,7 @@ Signal.set(count, 1)
     />
     <div class="heading-anchor" id="effect-run-with-disposer">
       <Typography text={static("Effect.runWithDisposer(fn)")} variant={H3} />
-      <a class="anchor-link" href="#effect-run-with-disposer"> {"#"->Component.text} </a>
+      <a class="anchor-link" href="#effect-run-with-disposer"> {"#"->View.text} </a>
     </div>
     <Typography
       text={static(
@@ -61,7 +61,7 @@ disposer.dispose() // Stop the effect`}
     />
     <div class="heading-anchor" id="effect-run-named">
       <Typography text={static("Effect.run(~name, fn)")} variant={H3} />
-      <a class="anchor-link" href="#effect-run-named"> {"#"->Component.text} </a>
+      <a class="anchor-link" href="#effect-run-named"> {"#"->View.text} </a>
     </div>
     <Typography text={static("Creates a named effect for debugging.")} />
     <CodeBlock
@@ -74,7 +74,7 @@ disposer.dispose() // Stop the effect`}
     <Separator />
     <div class="heading-anchor" id="cleanup">
       <Typography text={static("Cleanup Functions")} variant={H2} />
-      <a class="anchor-link" href="#cleanup"> {"#"->Component.text} </a>
+      <a class="anchor-link" href="#cleanup"> {"#"->View.text} </a>
     </div>
     <Typography
       text={static(
@@ -102,11 +102,11 @@ Signal.set(count, 1)
     <Separator />
     <div class="heading-anchor" id="disposal">
       <Typography text={static("Disposal")} variant={H2} />
-      <a class="anchor-link" href="#disposal"> {"#"->Component.text} </a>
+      <a class="anchor-link" href="#disposal"> {"#"->View.text} </a>
     </div>
     <div class="heading-anchor" id="disposer-dispose">
       <Typography text={static("disposer.dispose()")} variant={H3} />
-      <a class="anchor-link" href="#disposer-dispose"> {"#"->Component.text} </a>
+      <a class="anchor-link" href="#disposer-dispose"> {"#"->View.text} </a>
     </div>
     <Typography
       text={static(
@@ -130,11 +130,11 @@ Signal.set(count, 100) // Nothing logged`}
     <Separator />
     <div class="heading-anchor" id="common-use-cases">
       <Typography text={static("Common Use Cases")} variant={H2} />
-      <a class="anchor-link" href="#common-use-cases"> {"#"->Component.text} </a>
+      <a class="anchor-link" href="#common-use-cases"> {"#"->View.text} </a>
     </div>
     <div class="heading-anchor" id="dom-updates">
       <Typography text={static("DOM Updates")} variant={H3} />
-      <a class="anchor-link" href="#dom-updates"> {"#"->Component.text} </a>
+      <a class="anchor-link" href="#dom-updates"> {"#"->View.text} </a>
     </div>
     <CodeBlock
       language="rescript"
@@ -148,7 +148,7 @@ Effect.run(() => {
     />
     <div class="heading-anchor" id="event-listeners">
       <Typography text={static("Event Listeners")} variant={H3} />
-      <a class="anchor-link" href="#event-listeners"> {"#"->Component.text} </a>
+      <a class="anchor-link" href="#event-listeners"> {"#"->View.text} </a>
     </div>
     <CodeBlock
       language="rescript"
@@ -166,7 +166,7 @@ Effect.run(() => {
     />
     <div class="heading-anchor" id="timers">
       <Typography text={static("Timers")} variant={H3} />
-      <a class="anchor-link" href="#timers"> {"#"->Component.text} </a>
+      <a class="anchor-link" href="#timers"> {"#"->View.text} </a>
     </div>
     <CodeBlock
       language="rescript"
@@ -180,7 +180,7 @@ Effect.run(() => {
     />
     <div class="heading-anchor" id="local-storage">
       <Typography text={static("Local Storage Sync")} variant={H3} />
-      <a class="anchor-link" href="#local-storage"> {"#"->Component.text} </a>
+      <a class="anchor-link" href="#local-storage"> {"#"->View.text} </a>
     </div>
     <CodeBlock
       language="rescript"

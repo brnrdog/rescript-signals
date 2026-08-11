@@ -43,7 +43,6 @@ let _ = if isBrowser {
     let t = Signal.get(theme)
     setHtmlAttribute("data-theme", t)
     setItem("rescript-signals-theme", t)
-    Basefn.Theme.applyTheme(t == "dark" ? Basefn.Theme.Dark : Basefn.Theme.Light)
     None
   })->ignore
 }
@@ -132,13 +131,13 @@ module SearchModal = {
       }
     }
 
-    Component.signalFragment(
+    View.signalFragment(
       Computed.make(() => {
         if Signal.get(searchOpen) {
           [
-            Component.element(
+            View.element(
               "div",
-              ~attrs=[Component.attr("class", "search-overlay")],
+              ~attrs=[View.attr("class", "search-overlay")],
               ~events=[
                 (
                   "click",
@@ -154,25 +153,26 @@ module SearchModal = {
               ~children=[
                 <div class="search-modal">
                   <div class="search-input-wrapper">
-                    {Basefn.Icon.make({name: Search, size: Sm})}
-                    {Component.input(
+                    {Ui.Icon.make({name: Search, size: Sm})}
+                    {View.element(
+                      "input",
                       ~attrs=[
-                        Component.attr("class", "search-input"),
-                        Component.attr("placeholder", "Search documentation..."),
-                        Component.attr("autofocus", "true"),
+                        View.attr("class", "search-input"),
+                        View.attr("placeholder", "Search documentation..."),
+                        View.attr("autofocus", "true"),
                       ],
                       ~events=[("input", handleInput), ("keydown", handleKeyDown)],
                       (),
                     )}
-                    <div class="search-trigger-key"> {Component.text("esc")} </div>
+                    <div class="search-trigger-key"> {View.text("esc")} </div>
                   </div>
                   <div class="search-results">
-                    {Component.signalFragment(
+                    {View.signalFragment(
                       Computed.make(() => {
                         let items = Signal.get(filteredItems)
                         let idx = Signal.get(selectedIndex)
                         if Array.length(items) == 0 {
-                          [<div class="search-empty"> {Component.text("No results found.")} </div>]
+                          [<div class="search-empty"> {View.text("No results found.")} </div>]
                         } else {
                           let currentSection = ref("")
                           let globalIdx = ref(0)
@@ -184,7 +184,7 @@ module SearchModal = {
                                 nodes
                                 ->Array.push(
                                   <div class="search-group-label">
-                                    {Component.text(item.section)}
+                                    {View.text(item.section)}
                                   </div>,
                                 )
                                 ->ignore
@@ -194,9 +194,9 @@ module SearchModal = {
                               let cn = "search-result-item" ++ (isActive ? " active" : "")
                               nodes
                               ->Array.push(
-                                Component.element(
+                                View.element(
                                   "div",
-                                  ~attrs=[Component.attr("class", cn)],
+                                  ~attrs=[View.attr("class", cn)],
                                   ~events=[
                                     (
                                       "click",
@@ -209,7 +209,7 @@ module SearchModal = {
                                   ],
                                   ~children=[
                                     <div class="search-result-title">
-                                      {Component.text(item.title)}
+                                      {View.text(item.title)}
                                     </div>,
                                   ],
                                   (),
@@ -225,7 +225,7 @@ module SearchModal = {
                     )}
                   </div>
                   <div class="search-footer">
-                    {Component.text("Use arrow keys to navigate, Enter to select, Esc to close")}
+                    {View.text("Use arrow keys to navigate, Enter to select, Esc to close")}
                   </div>
                 </div>,
               ],
@@ -257,10 +257,10 @@ module Header = {
       })->ignore
     }
 
-    Component.element(
+    View.element(
       "header",
       ~attrs=[
-        Component.computedAttr("class", () =>
+        View.computedAttr("class", () =>
           Signal.get(isScrolled) ? "site-header scrolled" : "site-header"
         ),
       ],
@@ -269,102 +269,102 @@ module Header = {
           <div class="header-left">
             {Router.link(
               ~to="/",
-              ~attrs=[Component.attr("class", "header-logo-link")],
-              ~children=[<span> {Component.text("rescript-signals")} </span>],
+              ~attrs=[View.attr("class", "header-logo-link")],
+              ~children=[<span> {View.text("rescript-signals")} </span>],
               (),
             )}
             <nav class="header-nav">
               {Router.link(
                 ~to="/getting-started",
-                ~attrs=[Component.attr("class", "header-nav-link")],
-                ~children=[Component.text("Docs")],
+                ~attrs=[View.attr("class", "header-nav-link")],
+                ~children=[View.text("Docs")],
                 (),
               )}
               {Router.link(
                 ~to="/api/signal",
-                ~attrs=[Component.attr("class", "header-nav-link")],
-                ~children=[Component.text("API Reference")],
+                ~attrs=[View.attr("class", "header-nav-link")],
+                ~children=[View.text("API Reference")],
                 (),
               )}
               {Router.link(
                 ~to="/examples",
-                ~attrs=[Component.attr("class", "header-nav-link")],
-                ~children=[Component.text("Examples")],
+                ~attrs=[View.attr("class", "header-nav-link")],
+                ~children=[View.text("Examples")],
                 (),
               )}
             </nav>
           </div>
           <div class="header-right">
-            {Component.element(
+            {View.element(
               "button",
-              ~attrs=[Component.attr("class", "search-trigger")],
+              ~attrs=[View.attr("class", "search-trigger")],
               ~events=[("click", _ => openSearch())],
               ~children=[
-                Basefn.Icon.make({name: Search, size: Sm}),
-                <span> {Component.text("Search docs...")} </span>,
+                Ui.Icon.make({name: Search, size: Sm}),
+                <span> {View.text("Search docs...")} </span>,
                 <div class="search-trigger-keys">
-                  <span class="search-trigger-key"> {Component.text("\u2318")} </span>
-                  <span class="search-trigger-key"> {Component.text("K")} </span>
+                  <span class="search-trigger-key"> {View.text("\u2318")} </span>
+                  <span class="search-trigger-key"> {View.text("K")} </span>
                 </div>,
               ],
               (),
             )}
-            {Component.element(
+            {View.element(
               "a",
               ~attrs=[
-                Component.attr("href", "https://github.com/brnrdog/rescript-signals"),
-                Component.attr("target", "_blank"),
-                Component.attr("class", "gh-star-btn"),
-                Component.attr("title", "Star on GitHub"),
+                View.attr("href", "https://github.com/brnrdog/rescript-signals"),
+                View.attr("target", "_blank"),
+                View.attr("class", "gh-star-btn"),
+                View.attr("title", "Star on GitHub"),
               ],
               ~children=[
-                Basefn.Icon.make({name: Star, size: Sm}),
-                Component.element(
+                Ui.Icon.make({name: Star, size: Sm}),
+                View.element(
                   "span",
-                  ~attrs=[Component.attr("class", "gh-star-label")],
-                  ~children=[Component.text("Star")],
+                  ~attrs=[View.attr("class", "gh-star-label")],
+                  ~children=[View.text("Star")],
                   (),
                 ),
               ],
               (),
             )}
-            {Component.element(
+            {View.element(
               "a",
               ~attrs=[
-                Component.attr("href", "https://github.com/brnrdog/rescript-signals"),
-                Component.attr("target", "_blank"),
-                Component.attr("class", "header-icon-btn"),
-                Component.attr("title", "GitHub"),
+                View.attr("href", "https://github.com/brnrdog/rescript-signals"),
+                View.attr("target", "_blank"),
+                View.attr("class", "header-icon-btn"),
+                View.attr("title", "GitHub"),
               ],
-              ~children=[Basefn.Icon.make({name: GitHub, size: Sm})],
+              ~children=[Ui.Icon.make({name: GitHub, size: Sm})],
               (),
             )}
-            {Component.element(
+            {View.element(
               "button",
               ~attrs=[
-                Component.attr("class", "header-icon-btn"),
-                Component.attr("title", "Toggle theme"),
+                View.attr("class", "header-icon-btn"),
+                View.attr("title", "Toggle theme"),
               ],
               ~events=[("click", _ => toggleTheme())],
               ~children=[
-                Component.signalFragment(
+                View.signalFragment(
                   Computed.make(() =>
                     Signal.get(theme) == "dark"
-                      ? [Basefn.Icon.make({name: Sun, size: Sm})]
-                      : [Basefn.Icon.make({name: Moon, size: Sm})]
+                      ? [Ui.Icon.make({name: Sun, size: Sm})]
+                      : [Ui.Icon.make({name: Moon, size: Sm})]
                   ),
                 ),
               ],
               (),
             )}
-            {Component.element(
+            {View.element(
               "button",
               ~attrs=[
-                Component.attr("class", "header-icon-btn mobile-menu-btn"),
-                Component.attr("title", "Menu"),
+                View.attr("class", "header-icon-btn mobile-menu-btn"),
+                View.attr("title", "Menu"),
               ],
               ~events=[("click", _ => openSearch())],
-              ~children=[Basefn.Icon.make({name: Menu, size: Sm})],
+              ~children=[Ui.Icon.make({name: Menu, size: Sm})],
               (),
             )}
           </div>
@@ -387,71 +387,71 @@ module Footer = {
         <div class="footer-grid">
           <div class="footer-brand">
             <div class="footer-brand-logo">
-              <span> {Component.text("rescript-signals")} </span>
+              <span> {View.text("rescript-signals")} </span>
             </div>
             <p>
-              {Component.text(
+              {View.text(
                 "A lightweight, high-performance reactive signals library for ReScript with zero runtime dependencies.",
               )}
             </p>
           </div>
           <div class="footer-col">
-            <h4> {Component.text("Docs")} </h4>
+            <h4> {View.text("Docs")} </h4>
             <ul>
               <li>
                 {Router.link(
                   ~to="/getting-started",
-                  ~children=[Component.text("Getting Started")],
+                  ~children=[View.text("Getting Started")],
                   (),
                 )}
               </li>
               <li>
-                {Router.link(~to="/api/signal", ~children=[Component.text("API Reference")], ())}
+                {Router.link(~to="/api/signal", ~children=[View.text("API Reference")], ())}
               </li>
-              <li> {Router.link(~to="/examples", ~children=[Component.text("Examples")], ())} </li>
+              <li> {Router.link(~to="/examples", ~children=[View.text("Examples")], ())} </li>
             </ul>
           </div>
           <div class="footer-col">
-            <h4> {Component.text("Community")} </h4>
+            <h4> {View.text("Community")} </h4>
             <ul>
               <li>
                 <a href="https://github.com/brnrdog/rescript-signals" target="_blank">
-                  {Component.text("GitHub")}
+                  {View.text("GitHub")}
                 </a>
               </li>
               <li>
                 <a href="https://www.npmjs.com/package/rescript-signals" target="_blank">
-                  {Component.text("npm")}
+                  {View.text("npm")}
                 </a>
               </li>
             </ul>
           </div>
           <div class="footer-col">
-            <h4> {Component.text("More")} </h4>
+            <h4> {View.text("More")} </h4>
             <ul>
               <li>
                 <a href="https://rescript-lang.org/" target="_blank">
-                  {Component.text("ReScript")}
+                  {View.text("ReScript")}
                 </a>
               </li>
               <li>
                 <a href="https://github.com/tc39/proposal-signals" target="_blank">
-                  {Component.text("TC39 Signals")}
+                  {View.text("TC39 Signals")}
                 </a>
               </li>
               <li>
                 <a href="https://brnrdog.github.io/xote/" target="_blank">
-                  {Component.text("xote")}
+                  {View.text("xote")}
                 </a>
               </li>
             </ul>
           </div>
         </div>
         <div class="footer-bottom">
-          <div> {Component.text(`Copyright \u00A9 ${year} Bernardo Gurgel. MIT License.`)} </div>
+          <div> {View.text(`Copyright \u00A9 ${year} Bernardo Gurgel. MIT License.`)} </div>
           <div class="footer-bottom-right">
-            {Component.text("Built with ")}
-            <a href="https://brnrdog.github.io/xote/" target="_blank"> {Component.text("xote")} </a>
+            {View.text("Built with ")}
+            <a href="https://brnrdog.github.io/xote/" target="_blank"> {View.text("xote")} </a>
           </div>
         </div>
       </div>
@@ -480,7 +480,7 @@ let _ = if isBrowser {
 }
 
 // ---- Main layout wrapper ----
-type props = {children: Component.node}
+type props = {children: View.node}
 
 let make = (props: props) => {
   <div>

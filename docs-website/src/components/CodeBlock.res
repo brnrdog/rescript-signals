@@ -1,6 +1,6 @@
 open Xote
-open Xote.ReactiveProp
-open Basefn
+open Xote.MaybeSignal
+open Ui
 
 %%raw(`import 'highlight.js/styles/github.min.css'`)
 %%raw(`import 'highlight.js/styles/github-dark.min.css'`)
@@ -56,7 +56,7 @@ let make = (~code: string, ~language: string="rescript") => {
         id
         class={"language-" ++ language}
         style="font-family: var(--basefn-font-family-mono); font-size: 14px; line-height: 1.5;">
-        {Component.text(code)}
+        {View.text(code)}
       </code>
     </pre>
     <div style="position: absolute; top: 0.5rem; right: 0.5rem;">

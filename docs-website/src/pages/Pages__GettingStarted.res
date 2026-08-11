@@ -1,5 +1,5 @@
-open Xote.ReactiveProp
-open Basefn
+open Xote.MaybeSignal
+open Ui
 
 @jsx.component
 let make = () => {
@@ -11,7 +11,7 @@ let make = () => {
     <Separator />
     <div class="heading-anchor" id="installation">
       <Typography text={static("Installation")} variant={H2} />
-      <a class="anchor-link" href="#installation"> {"#"->Xote.Component.text} </a>
+      <a class="anchor-link" href="#installation"> {"#"->Xote.View.text} </a>
     </div>
     <Typography
       text={static("Install rescript-signals using your preferred package manager:")}
@@ -38,7 +38,7 @@ let make = () => {
     <Separator />
     <div class="heading-anchor" id="configuration">
       <Typography text={static("Configuration")} variant={H2} />
-      <a class="anchor-link" href="#configuration"> {"#"->Xote.Component.text} </a>
+      <a class="anchor-link" href="#configuration"> {"#"->Xote.View.text} </a>
     </div>
     <Typography text={static("Add rescript-signals to your rescript.json dependencies:")} />
     <CodeBlock
@@ -52,7 +52,7 @@ let make = () => {
     <Separator />
     <div class="heading-anchor" id="core-concepts">
       <Typography text={static("Core Concepts")} variant={H2} />
-      <a class="anchor-link" href="#core-concepts"> {"#"->Xote.Component.text} </a>
+      <a class="anchor-link" href="#core-concepts"> {"#"->Xote.View.text} </a>
     </div>
     <Typography
       text={static(
@@ -61,7 +61,7 @@ let make = () => {
     />
     <div class="heading-anchor" id="signal">
       <Typography text={static("Signal")} variant={H3} />
-      <a class="anchor-link" href="#signal"> {"#"->Xote.Component.text} </a>
+      <a class="anchor-link" href="#signal"> {"#"->Xote.View.text} </a>
     </div>
     <Typography
       text={static(
@@ -76,7 +76,7 @@ Signal.set(name, "ReScript")`}
     />
     <div class="heading-anchor" id="computed">
       <Typography text={static("Computed")} variant={H3} />
-      <a class="anchor-link" href="#computed"> {"#"->Xote.Component.text} </a>
+      <a class="anchor-link" href="#computed"> {"#"->Xote.View.text} </a>
     </div>
     <Typography
       text={static(
@@ -91,7 +91,7 @@ Computed.get(doubled) // 10`}
     />
     <div class="heading-anchor" id="effect">
       <Typography text={static("Effect")} variant={H3} />
-      <a class="anchor-link" href="#effect"> {"#"->Xote.Component.text} </a>
+      <a class="anchor-link" href="#effect"> {"#"->Xote.View.text} </a>
     </div>
     <Typography
       text={static(
