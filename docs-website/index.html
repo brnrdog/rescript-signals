@@ -1,32 +1,33 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>rescript-signals - Reactive Signals Library for ReScript</title>
-  <meta name="description" content="A lightweight, high-performance reactive signals library for ReScript with zero runtime dependencies.">
-  <meta name="theme-color" content="#0f0f14">
+  <title>rescript-signals — reactive signals for ReScript</title>
+  <meta name="description" content="Fine-grained reactive state for ReScript: signals, computed values and effects, with automatic dependency tracking and no runtime dependencies.">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0e0e10" media="(prefers-color-scheme: dark)">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&family=Geist+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300..700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script>
+    // Resolve the theme before first paint, so the page never renders in one
+    // theme and then switches. Theme.res adopts whatever is decided here.
+    (function () {
+      try {
+        var stored = localStorage.getItem('rescript-signals-theme')
+        var dark = stored ? stored === 'dark'
+          : window.matchMedia('(prefers-color-scheme: dark)').matches
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light')
+      }
+    })()
+  </script>
 </head>
 <body>
-  <!-- SPA redirect decoder for GitHub Pages (counterpart to 404.html) -->
-  <script>
-    (function() {
-      var redirect = window.location.search.match(/^\?\/(.*)/);
-      if (redirect) {
-        var decoded = redirect[1].split('&').map(function(s) {
-          return s.replace(/~and~/g, '&');
-        }).join('?');
-        var basePath = '/rescript-signals';
-        window.history.replaceState(null, '',
-          basePath + '/' + decoded + window.location.hash
-        );
-      }
-    })();
-  </script>
   <a href="#main-content" class="skip-to-content">Skip to content</a>
   <div id="app"><!--ssr-outlet--></div>
   <script type="module" src="/src/Main.res.mjs"></script>

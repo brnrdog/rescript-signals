@@ -14,16 +14,8 @@ import { fileURLToPath } from 'node:url'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const buildDir = path.join(__dirname, '..', 'build', 'client')
 
-// All routes to pre-render (app-relative paths, without base path)
-const routes = [
-  '/',
-  '/getting-started',
-  '/api/signal',
-  '/api/computed',
-  '/api/effect',
-  '/examples',
-  '/release-notes',
-]
+// The site is a single page, so there is one route to pre-render.
+const routes = ['/']
 
 // Suppress expected SSR errors from client-only code
 process.on('uncaughtException', (err) => {

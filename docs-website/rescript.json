@@ -14,14 +14,13 @@
   "dependencies": [
     "@rescript/core",
     "rescript-signals",
-    "xote",
-    "basefn"
+    "xote"
   ],
   "compiler-flags": [
     "-open RescriptCore"
   ],
   "jsx": {
     "version": 4,
-    "module": "Xote__JSX"
+    "module": "Xote.XoteJSX"
   }
 }
