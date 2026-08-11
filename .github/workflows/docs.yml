@@ -7,6 +7,10 @@ on:
     paths:
       - 'docs-website/**'
       - '.github/workflows/docs.yml'
+  # The changelog section is baked in at build time, so publishing a release has
+  # to redeploy the site for the page to show it.
+  release:
+    types: [published]
   workflow_dispatch:
 
 permissions:
@@ -38,6 +42,9 @@ jobs:
       - name: Build
         working-directory: docs-website
         run: npm run build
+        env:
+          # Lifts the GitHub API rate limit while generating the changelog.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

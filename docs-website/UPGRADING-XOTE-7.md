@@ -1,3 +1,10 @@
+> **Historical.** This records the xote 4 → 7 upgrade as it happened. The site
+> has since been rebuilt as a single page, so the file layout described below no
+> longer exists: `src/ui/`, `src/pages/`, `Layout.res`, `HomePage.res` and
+> `DocsPage.res` were removed, and the highlight.js problem noted under
+> "Known issues" was fixed by replacing it with a small in-house tokenizer. See
+> `docs/superpowers/specs/2026-08-11-docs-website-redesign-design.md`.
+
 # Upgrading the docs site to xote 7.1.0-beta.7
 
 This documents the upgrade of `docs-website` from **xote 4.16.1** to **xote 7.1.0-beta.7**
