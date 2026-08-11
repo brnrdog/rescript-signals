@@ -1,6 +1,6 @@
 open Xote
-open Xote.ReactiveProp
-open Basefn
+open Xote.MaybeSignal
+open Ui
 
 // Simple DOM helpers
 let getInputValue: Dom.event => string = %raw(`function(e) { return e.target.value }`)
@@ -14,13 +14,13 @@ module CounterExample = {
     <Card header="Counter" variant={Outlined}>
       <div style="display: flex; align-items: center; gap: 1rem;">
         <Button variant={Secondary} onClick={_ => Signal.update(count, n => n - 1)}>
-          {Component.text("-")}
+          {View.text("-")}
         </Button>
         <div style="font-size: 1.5rem; font-weight: bold; min-width: 3rem; text-align: center;">
-          {Component.textSignal(() => Signal.get(countText))}
+          {View.signalText(() => Signal.get(countText))}
         </div>
         <Button variant={Secondary} onClick={_ => Signal.update(count, n => n + 1)}>
-          {Component.text("+")}
+          {View.text("+")}
         </Button>
       </div>
     </Card>
@@ -52,15 +52,15 @@ module TodoExample = {
           onInput={evt => Signal.set(inputValue, getInputValue(evt))}
           placeholder="Add a todo..."
         />
-        <Button variant={Primary} onClick={addTodo}> {Component.text("Add")} </Button>
+        <Button variant={Primary} onClick={addTodo}> {View.text("Add")} </Button>
       </div>
       <div>
-        {Component.list(todos, todo => {
+        {View.each(todos, todo => {
           <div
             style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--basefn-border-primary);">
             <Typography text={static(todo)} />
             <Button variant={Ghost} onClick={_ => removeTodo(todo)}>
-              {Component.text("Remove")}
+              {View.text("Remove")}
             </Button>
           </div>
         })}
@@ -91,8 +91,8 @@ module DerivedStateExample = {
     let priceStr = Computed.make(() => Signal.get(price)->Float.toString)
     let quantityStr = Computed.make(() => Signal.get(quantity)->Int.toString)
 
-    let taxRateOptions: Signal.t<array<Basefn__Select.selectOption>> = Signal.make([
-      {Basefn__Select.value: "0.05", label: "5%"},
+    let taxRateOptions: Signal.t<array<Ui__Select.selectOption>> = Signal.make([
+      {Ui__Select.value: "0.05", label: "5%"},
       {value: "0.1", label: "10%"},
       {value: "0.2", label: "20%"},
     ])
@@ -146,20 +146,20 @@ module DerivedStateExample = {
         <div style="display: flex; justify-content: space-between;">
           <Typography text={static("Subtotal:")} />
           <span>
-            {Component.textSignal(() => `$${Signal.get(subtotal)->Float.toFixed(~digits=2)}`)}
+            {View.signalText(() => `$${Signal.get(subtotal)->Float.toFixed(~digits=2)}`)}
           </span>
         </div>
         <div style="display: flex; justify-content: space-between;">
           <Typography text={static("Tax:")} />
           <span>
-            {Component.textSignal(() => `$${Signal.get(tax)->Float.toFixed(~digits=2)}`)}
+            {View.signalText(() => `$${Signal.get(tax)->Float.toFixed(~digits=2)}`)}
           </span>
         </div>
         <Separator />
         <div style="display: flex; justify-content: space-between;">
           <Typography text={static("Total:")} variant={H4} />
           <span style="font-size: 1.25rem; font-weight: bold;">
-            {Component.textSignal(() => `$${Signal.get(total)->Float.toFixed(~digits=2)}`)}
+            {View.signalText(() => `$${Signal.get(total)->Float.toFixed(~digits=2)}`)}
           </span>
         </div>
       </div>
@@ -184,11 +184,11 @@ let make = () => {
       <Separator />
       <div class="heading-anchor" id="source-code">
         <Typography text={static("Source Code")} variant={H2} />
-        <a class="anchor-link" href="#source-code"> {"#"->Component.text} </a>
+        <a class="anchor-link" href="#source-code"> {"#"->View.text} </a>
       </div>
       <Typography
         text={static(
-          "These examples are built with xote and basefn. Check out the source code in the docs-website repository to see the full implementation.",
+          "These examples are built with xote. Check out the source code in the docs-website repository to see the full implementation.",
         )}
       />
     </div>

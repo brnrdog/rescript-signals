@@ -72,18 +72,18 @@ module Sidebar = {
   let make = (props: props) => {
     let {currentPath} = props
     <aside class="docs-sidebar">
-      {Component.fragment(
+      {View.fragment(
         docsNav->Array.map(category => {
           <div class="sidebar-section">
-            <div class="sidebar-section-title"> {Component.text(category.label)} </div>
-            {Component.fragment(
+            <div class="sidebar-section-title"> {View.text(category.label)} </div>
+            {View.fragment(
               category.items->Array.map(item => {
                 let isActive = currentPath == item.path
                 let className = "sidebar-link" ++ (isActive ? " active" : "")
                 Router.link(
                   ~to=item.path,
-                  ~attrs=[Component.attr("class", className)],
-                  ~children=[Component.text(item.title)],
+                  ~attrs=[View.attr("class", className)],
+                  ~children=[View.text(item.title)],
                   (),
                 )
               }),
@@ -102,17 +102,17 @@ module DocsBreadcrumb = {
   let make = (props: props) => {
     let (category, title) = getCategoryAndTitle(props.currentPath)
     <nav class="docs-breadcrumb">
-      {Router.link(~to="/getting-started", ~children=[Component.text("Docs")], ())}
+      {Router.link(~to="/getting-started", ~children=[View.text("Docs")], ())}
       {if category != "" && category != "Getting Started" {
-        Component.fragment([
-          <span class="docs-breadcrumb-sep"> {Component.text("/")} </span>,
-          <span> {Component.text(category)} </span>,
+        View.fragment([
+          <span class="docs-breadcrumb-sep"> {View.text("/")} </span>,
+          <span> {View.text(category)} </span>,
         ])
       } else {
-        Component.fragment([])
+        View.fragment([])
       }}
-      <span class="docs-breadcrumb-sep"> {Component.text("/")} </span>
-      <span class="docs-breadcrumb-current"> {Component.text(title)} </span>
+      <span class="docs-breadcrumb-sep"> {View.text("/")} </span>
+      <span class="docs-breadcrumb-current"> {View.text(title)} </span>
     </nav>
   }
 }
@@ -128,12 +128,12 @@ module PrevNextNav = {
       | Some(item) =>
         Router.link(
           ~to=item.path,
-          ~attrs=[Component.attr("class", "docs-prev-next-link")],
+          ~attrs=[View.attr("class", "docs-prev-next-link")],
           ~children=[
             <span class="docs-prev-next-label">
-              {Component.text("\u2190 Previous")}
+              {View.text("\u2190 Previous")}
             </span>,
-            <span class="docs-prev-next-title"> {Component.text(item.title)} </span>,
+            <span class="docs-prev-next-title"> {View.text(item.title)} </span>,
           ],
           (),
         )
@@ -143,12 +143,12 @@ module PrevNextNav = {
       | Some(item) =>
         Router.link(
           ~to=item.path,
-          ~attrs=[Component.attr("class", "docs-prev-next-link next")],
+          ~attrs=[View.attr("class", "docs-prev-next-link next")],
           ~children=[
             <span class="docs-prev-next-label">
-              {Component.text("Next \u2192")}
+              {View.text("Next \u2192")}
             </span>,
-            <span class="docs-prev-next-title"> {Component.text(item.title)} </span>,
+            <span class="docs-prev-next-title"> {View.text(item.title)} </span>,
           ],
           (),
         )
@@ -166,29 +166,29 @@ module FeedbackWidget = {
     let feedback = Signal.make("")
 
     <div class="docs-feedback">
-      {Component.text("Was this page helpful?")}
-      {Component.element(
+      {View.text("Was this page helpful?")}
+      {View.element(
         "button",
         ~attrs=[
-          Component.computedAttr("class", () =>
+          View.computedAttr("class", () =>
             "feedback-btn" ++ (Signal.get(feedback) == "yes" ? " selected" : "")
           ),
-          Component.attr("title", "Yes"),
+          View.attr("title", "Yes"),
         ],
         ~events=[("click", _ => Signal.set(feedback, "yes"))],
-        ~children=[Component.text("\u{1F44D}")],
+        ~children=[View.text("\u{1F44D}")],
         (),
       )}
-      {Component.element(
+      {View.element(
         "button",
         ~attrs=[
-          Component.computedAttr("class", () =>
+          View.computedAttr("class", () =>
             "feedback-btn" ++ (Signal.get(feedback) == "no" ? " selected" : "")
           ),
-          Component.attr("title", "No"),
+          View.attr("title", "No"),
         ],
         ~events=[("click", _ => Signal.set(feedback, "no"))],
-        ~children=[Component.text("\u{1F44E}")],
+        ~children=[View.text("\u{1F44E}")],
         (),
       )}
     </div>
@@ -207,15 +207,15 @@ module TableOfContents = {
 
   let make = (props: props) => {
     if Array.length(props.items) == 0 {
-      Component.fragment([])
+      View.fragment([])
     } else {
       <aside class="docs-toc">
-        <div class="toc-title"> {Component.text("On this page")} </div>
-        {Component.fragment(
+        <div class="toc-title"> {View.text("On this page")} </div>
+        {View.fragment(
           props.items->Array.map(item => {
             let className = "toc-link" ++ (item.level == 3 ? " toc-link-h3" : "")
             <a href={"#" ++ item.id} class={className}>
-              {Component.text(item.text)}
+              {View.text(item.text)}
             </a>
           }),
         )}
@@ -227,7 +227,7 @@ module TableOfContents = {
 // ---- Main docs page component ----
 type props = {
   currentPath: string,
-  content: Component.node,
+  content: View.node,
   pageTitle?: string,
   pageLead?: string,
   tocItems?: array<TableOfContents.tocItem>,
@@ -253,10 +253,10 @@ let make = (props: props) => {
         <Sidebar currentPath />
         <div class="docs-main">
           <DocsBreadcrumb currentPath />
-          <h1 class="docs-page-title"> {Component.text(pageTitle)} </h1>
+          <h1 class="docs-page-title"> {View.text(pageTitle)} </h1>
           {switch props.pageLead {
-          | Some(lead) => <p class="docs-page-lead"> {Component.text(lead)} </p>
-          | None => Component.fragment([])
+          | Some(lead) => <p class="docs-page-lead"> {View.text(lead)} </p>
+          | None => View.fragment([])
           }}
           <div class="docs-content"> {content} </div>
           <PrevNextNav currentPath />

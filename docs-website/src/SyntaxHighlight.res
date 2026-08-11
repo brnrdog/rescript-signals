@@ -21,18 +21,18 @@ let keywords = [
 
 let types = ["int", "string", "bool", "float", "array", "option", "unit"]
 
-let highlight = (code: string): Component.node => {
+let highlight = (code: string): View.node => {
   let lines = code->String.split("\n")
 
-  let highlightLine = (line: string, lineNumber: int): Component.node => {
+  let highlightLine = (line: string, lineNumber: int): View.node => {
     let lineNum = (lineNumber + 1)->Int.toString
 
     // Check if line is a comment
     let lineContent = if line->String.trim->String.startsWith("//") {
-      Component.element(
+      View.element(
         "span",
-        ~attrs=[Component.attr("class", "syntax-comment")],
-        ~children=[Component.text(line)],
+        ~attrs=[View.attr("class", "syntax-comment")],
+        ~children=[View.text(line)],
         (),
       )
     } else {
@@ -60,35 +60,35 @@ let highlight = (code: string): Component.node => {
           "syntax-text"
         }
 
-        Component.fragment([
-          Component.element(
+        View.fragment([
+          View.element(
             "span",
-            ~attrs=[Component.attr("class", className)],
-            ~children=[Component.text(word)],
+            ~attrs=[View.attr("class", className)],
+            ~children=[View.text(word)],
             (),
           ),
           idx < Array.length(words) - 1
-            ? Component.text(" ")
-            : Component.fragment([]),
+            ? View.text(" ")
+            : View.fragment([]),
         ])
       })
 
-      Component.fragment(highlightedWords)
+      View.fragment(highlightedWords)
     }
 
-    Component.element(
+    View.element(
       "div",
-      ~attrs=[Component.attr("class", "syntax-line")],
+      ~attrs=[View.attr("class", "syntax-line")],
       ~children=[
-        Component.element(
+        View.element(
           "span",
-          ~attrs=[Component.attr("class", "syntax-line-number")],
-          ~children=[Component.text(lineNum)],
+          ~attrs=[View.attr("class", "syntax-line-number")],
+          ~children=[View.text(lineNum)],
           (),
         ),
-        Component.element(
+        View.element(
           "span",
-          ~attrs=[Component.attr("class", "syntax-line-content")],
+          ~attrs=[View.attr("class", "syntax-line-content")],
           ~children=[lineContent],
           (),
         ),
@@ -97,5 +97,5 @@ let highlight = (code: string): Component.node => {
     )
   }
 
-  Component.fragment(lines->Array.mapWithIndex((line, idx) => highlightLine(line, idx)))
+  View.fragment(lines->Array.mapWithIndex((line, idx) => highlightLine(line, idx)))
 }

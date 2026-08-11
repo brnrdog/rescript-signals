@@ -59,7 +59,10 @@
   --duration-base: 150ms;
   --duration-slow: 300ms;
 
-  /* Override basefn theme vars to match our purple palette */
+  /* Theme tokens consumed by src/ui and by inline styles across the pages */
+  --basefn-color-border: var(--border-default);
+  --basefn-color-muted: var(--text-muted);
+  --basefn-radius-lg: 0.5rem;
   --basefn-color-primary: var(--purple-500);
   --basefn-color-primary-hover: var(--purple-400);
   --basefn-color-primary-active: var(--purple-600);

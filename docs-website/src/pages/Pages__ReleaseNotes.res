@@ -1,6 +1,6 @@
 open Xote
-open Xote.ReactiveProp
-open Basefn
+open Xote.MaybeSignal
+open Ui
 
 // External bindings for fetch
 @val external fetch: string => promise<'a> = "fetch"
@@ -78,7 +78,7 @@ let make = () => {
         variant={Lead}
       />
       <Separator />
-      {Component.signalFragment(
+      {View.signalFragment(
         Computed.make(() => {
           switch Signal.get(state) {
           | Loading => [<Spinner />]
