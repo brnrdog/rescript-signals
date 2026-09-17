@@ -13,7 +13,7 @@ let makeWithoutEquals = (
   let recompute = () => {
     let currentSignal = signalRef.contents
     let newValue = compute()
-    currentSignal.value = newValue
+    currentSignal.raw = newValue
     currentSignal.subs.version = currentSignal.subs.version + 1
   }
 
@@ -27,13 +27,7 @@ let makeWithoutEquals = (
   Scheduler.currentComputedSubs := prev
 
   // Create the signal with the initial value
-  let signal: Signal.t<'a> = {
-    id,
-    value: initialValue,
-    equals: equalsFn,
-    name,
-    subs,
-  }
+  let signal: Signal.t<'a> = Signal.makeRecord(id, initialValue, equalsFn, name, subs, Signal.get)
 
   // Set the ref so recompute can access the signal
   signalRef := signal
@@ -57,7 +51,7 @@ let makeWithEquals = (
   // Recompute function - updates the signal's value and tracks if it changed
   let recompute = () => {
     let currentSignal = signalRef.contents
-    let previousValue = currentSignal.value
+    let previousValue = currentSignal.raw
     let newValue = compute()
     let shouldUpdate = try {
       !currentSignal.equals(previousValue, newValue)
@@ -65,7 +59,7 @@ let makeWithEquals = (
     | _ => true
     }
     if shouldUpdate {
-      currentSignal.value = newValue
+      currentSignal.raw = newValue
       currentSignal.subs.version = currentSignal.subs.version + 1
     }
   }
@@ -80,13 +74,7 @@ let makeWithEquals = (
   Scheduler.currentComputedSubs := prev
 
   // Create the signal with the initial value
-  let signal: Signal.t<'a> = {
-    id,
-    value: initialValue,
-    equals: equalsFn,
-    name,
-    subs,
-  }
+  let signal: Signal.t<'a> = Signal.makeRecord(id, initialValue, equalsFn, name, subs, Signal.get)
 
   // Set the ref so recompute can access the signal
   signalRef := signal
