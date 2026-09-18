@@ -53,6 +53,42 @@ let tests = Suite.make(
       disposer.dispose()
       Assert.isTrue(cleanupCount.contents >= 2, ~message="Cleanup should run on re-execution")
     }),
+    Test.make("an effect disposed while queued neither runs nor comes back", () => {
+      // A write can queue an effect and, through another effect that runs
+      // first, dispose it before it is dequeued. The scheduler used to run it
+      // anyway; the run re-tracked its dependencies, so the disposed effect
+      // kept firing on every later write.
+      let source = Signal.make(0)
+      let runs = ref(0)
+      let cleanups = ref(0)
+      let victim = ref(None)
+      // Runs first: same level, queued first.
+      let _ = Effect.runWithDisposer(() => {
+        let _ = Signal.get(source)
+        switch victim.contents {
+        | Some(disposer: Effect.disposer) => disposer.dispose()
+        | None => ()
+        }
+        None
+      })
+      victim :=
+        Some(
+          Effect.runWithDisposer(() => {
+            let _ = Signal.get(source)
+            runs := runs.contents + 1
+            Some(() => cleanups := cleanups.contents + 1)
+          }),
+        )
+      let mounted = (runs.contents, cleanups.contents)
+      Signal.set(source, 1)
+      let afterDisposal = (runs.contents, cleanups.contents)
+      Signal.set(source, 2)
+      Assert.combineResults([
+        Assert.equal(mounted, (1, 0), ~message="Effect runs once when created"),
+        Assert.equal(afterDisposal, (1, 1), ~message="Disposal runs the cleanup, not the effect"),
+        Assert.equal((runs.contents, cleanups.contents), (1, 1), ~message="A disposed effect stays disposed"),
+      ])
+    }),
     Test.make("effect cleanup runs on disposal", () => {
       let cleaned = ref(false)
       let disposer = Effect.runWithDisposer(() => Some(() => cleaned := true))
