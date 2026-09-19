@@ -1,4 +1,6 @@
-type t<'a> = {
+// The record itself is declared in `Core` so the scheduler can write a
+// computed's result into it; this is the same type.
+type t<'a> = Core.cell<'a> = {
   id: int,
   mutable value: 'a,
   equals: ('a, 'a) => bool,

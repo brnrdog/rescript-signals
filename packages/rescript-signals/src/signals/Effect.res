@@ -1,30 +1,17 @@
 type disposer = {dispose: unit => unit}
 
+// One record for the effect, one closure for its disposer, and the record the
+// disposer travels in: everything else the effect needs — its cleanup, whether
+// it has been disposed — lives on the observer, where the scheduler can see it.
 let runWithDisposer = (fn: unit => option<unit => unit>, ~name: option<string>=?): disposer => {
-  let observerId = Id.make()
-  let cleanup: ref<option<unit => unit>> = ref(None)
-
-  // Wrapper that handles cleanup
-  let runWithCleanup = () => {
-    // Run previous cleanup
-    switch cleanup.contents {
-    | Some(cleanupFn) => cleanupFn()
-    | None => ()
-    }
-
-    // Run effect and store new cleanup
-    cleanup := fn()
-  }
-
-  // Create observer using Core types
-  let observer = Core.makeObserver(observerId, #Effect, runWithCleanup, ~name?)
+  let observer = Core.makeObserver(Id.make(), #Effect, fn, ~name?)
 
   // Initial run under tracking (no need to clearDeps - observer is fresh)
   let prev = Scheduler.currentObserver.contents
   Scheduler.currentObserver := Some(observer)
 
   try {
-    observer.run()
+    Scheduler.runEffectBody(observer)
     Core.clearDirty(observer)
     Scheduler.currentObserver := prev
   } catch {
@@ -36,24 +23,7 @@ let runWithDisposer = (fn: unit => option<unit => unit>, ~name: option<string>=?
   // Compute level
   observer.level = Scheduler.computeLevel(observer)
 
-  // Return disposer - stores observer reference directly (no Map lookup needed)
-  let disposed = ref(false)
-
-  let dispose = () => {
-    if !disposed.contents {
-      disposed := true
-
-      // Run final cleanup
-      switch cleanup.contents {
-      | Some(cleanupFn) => cleanupFn()
-      | None => ()
-      }
-
-      Core.clearDeps(observer)
-    }
-  }
-
-  {dispose: dispose}
+  {dispose: () => Scheduler.disposeEffect(observer)}
 }
 
 let run = (fn: unit => option<unit => unit>, ~name: option<string>=?): unit => {
