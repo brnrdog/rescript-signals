@@ -18,5 +18,5 @@
   },
   "suffix": ".res.mjs",
   "compiler-flags": ["-open Stdlib"],
-  "dev-dependencies": ["zekr", "@rescript/core"]
+  "dev-dependencies": ["zekr"]
 }
