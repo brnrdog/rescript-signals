@@ -315,7 +315,25 @@ let runComputedCycle = (subs: Core.subs, ~clearPending: bool): unit => {
 
   try {
     switch subs.compute {
-    | Some(compute) => compute()
+    | Some(compute) => {
+        let cell: Core.cell<Obj.t> = Obj.magic(subs.cell)
+        let next = compute()
+        if subs.deferEffectsUntilRecompute {
+          // A custom equals decides whether anything downstream hears about it.
+          let changed = try {
+            !cell.equals(cell.raw, next)
+          } catch {
+          | _ => true
+          }
+          if changed {
+            cell.raw = next
+            subs.version = subs.version + 1
+          }
+        } else {
+          cell.raw = next
+          subs.version = subs.version + 1
+        }
+      }
     | None => ()
     }
 
@@ -386,8 +404,45 @@ let retrackComputed = (s: Core.subs): unit => {
   }
 }
 
+// Run an effect's body once: the previous run's cleanup first, then the body,
+// whose return value is the next cleanup.
+let runEffectBody = (observer: Core.observer): unit => {
+  switch observer.cleanup {
+  | Some(cleanup) =>
+    observer.cleanup = None
+    cleanup()
+  | None => ()
+  }
+  observer.cleanup = observer.run()
+}
+
+// Release an effect: its cleanup runs once, its dependencies are unlinked, and
+// a run the queue still owes it becomes a no-op.
+let disposeEffect = (observer: Core.observer): unit => {
+  if !Core.isDisposed(observer) {
+    Core.setDisposed(observer)
+    switch observer.cleanup {
+    | Some(cleanup) =>
+      observer.cleanup = None
+      cleanup()
+    | None => ()
+    }
+    Core.clearDeps(observer)
+  }
+}
+
 // Retrack an effect (with link reuse)
-let retrackEffect = (observer: Core.observer): unit => {
+let rec retrackEffect = (observer: Core.observer): unit => {
+  // Disposed while queued: dequeue without running, or the run would re-track
+  // the effect's dependencies and resurrect it.
+  if Core.isDisposed(observer) {
+    Core.clearPending(observer)
+  } else {
+    retrackLiveEffect(observer)
+  }
+}
+
+and retrackLiveEffect = (observer: Core.observer): unit => {
   let oldLevel = observer.level
   let previousTrackingVersion = currentTrackingVersion.contents
 
@@ -404,7 +459,7 @@ let retrackEffect = (observer: Core.observer): unit => {
   currentObserverDepCursor := observer.firstDep
 
   try {
-    observer.run()
+    runEffectBody(observer)
 
     // After run: unlink stale deps (version != current)
     let link = ref(observer.firstDep)

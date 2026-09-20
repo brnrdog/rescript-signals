@@ -12,6 +12,11 @@ let flag_running = 4
 let flag_detached = 8
 // A computed with neither bit set is attached and clean: its cached value stands.
 let flag_needs_settle = 9
+// Set on an effect once its disposer has run. The scheduler's queue holds plain
+// references, so an effect disposed while queued is still dequeued once; the
+// flag is what makes that dequeue a no-op instead of a run that re-tracks the
+// effect's dependencies and brings it back from the dead.
+let flag_disposed = 16
 
 // Global tracking version
 let trackingVersion: ref<int> = ref(0)
@@ -52,12 +57,20 @@ and Subs: {
     mutable computedSubscriberCount: int,
     mutable version: int,
     // === Observer fields (only used for computeds) ===
-    // If compute is Some, this subs is a computed signal
-    mutable compute: option<unit => unit>,
+    // If compute is Some, this subs is a computed signal. This is the
+    // consumer's own function; the scheduler stores what it returns into the
+    // cell below and bumps the version, so no wrapper closure is needed.
+    mutable compute: option<unit => Obj.t>,
+    // The signal record this subs backs, for a computed: where the scheduler
+    // writes the recomputed value. Type-erased because the record is defined
+    // downstream of this module. Null for a plain signal.
+    mutable cell: Obj.t,
     mutable firstDep: option<Link.t>,
     mutable lastDep: option<Link.t>,
     mutable flags: int,
     mutable level: int,
+    // A computed with a custom `equals`: effects behind it wait for it to
+    // recompute, so an unchanged result stops the propagation there.
     mutable deferEffectsUntilRecompute: bool,
     mutable lastGlobalVersion: int,
   }
@@ -68,21 +81,42 @@ and Observer: {
   type t = {
     id: int,
     kind: kind,
-    run: unit => unit,
+    // The effect body; what it returns is the cleanup to run before the next
+    // run and on disposal.
+    run: unit => option<unit => unit>,
+    mutable cleanup: option<unit => unit>,
     mutable firstDep: option<Link.t>,
     mutable lastDep: option<Link.t>,
     mutable flags: int,
     mutable level: int,
     name: option<string>,
-    // For computed observers: direct reference to backing subs (the combined object)
-    mutable backingSubs: option<Subs.t>,
   }
 } = Observer
+
+// The signal record, as the scheduler sees it when it writes a computed's
+// result. `Signal.t` is this type; it lives here so that `Subs.cell` can be
+// read back without a dependency on the `Signal` module.
+//
+// `raw` is the storage and `value` an accessor over it that subscribes the
+// current observer (installed on the prototype by `Signal.makeRecord`). The
+// scheduler therefore writes `raw`: writing `value` would recurse into the
+// getter, and reading it during a recompute would subscribe the computed to
+// itself.
+type cell<'a> = {
+  id: int,
+  mutable raw: 'a,
+  value: 'a,
+  equals: ('a, 'a) => bool,
+  name: option<string>,
+  subs: Subs.t,
+}
 
 // Type aliases for convenience
 type link = Link.t
 type subs = Subs.t
 type observer = Observer.t
+
+let noCell: Obj.t = %raw(`null`)
 
 // Create empty subscriber list (for plain signals)
 let makeSubs = (): subs => {
@@ -91,6 +125,7 @@ let makeSubs = (): subs => {
   computedSubscriberCount: 0,
   version: 0,
   compute: None,
+  cell: noCell,
   firstDep: None,
   lastDep: None,
   flags: 0,
@@ -100,12 +135,13 @@ let makeSubs = (): subs => {
 }
 
 // Create subs for a computed (with compute function)
-let makeComputedSubs = (compute: unit => unit, ~deferEffectsUntilRecompute: bool=false): subs => {
+let makeComputedSubs = (compute: unit => 'a, ~deferEffectsUntilRecompute: bool=false): subs => {
   first: None,
   last: None,
   computedSubscriberCount: 0,
   version: 0,
-  compute: Some(compute),
+  compute: Some(Obj.magic(compute)),
+  cell: noCell,
   firstDep: None,
   lastDep: None,
   flags: Int.bitwiseOr(flag_dirty, flag_detached), // start dirty and detached
@@ -118,19 +154,18 @@ let makeComputedSubs = (compute: unit => unit, ~deferEffectsUntilRecompute: bool
 let makeObserver = (
   id: int,
   kind: kind,
-  run: unit => unit,
+  run: unit => option<unit => unit>,
   ~name: option<string>=?,
-  ~backingSubs: option<subs>=?,
 ): observer => {
   id,
   kind,
   run,
+  cleanup: None,
   firstDep: None,
   lastDep: None,
   flags: flag_dirty, // start dirty
   level: 0,
   name,
-  backingSubs,
 }
 
 // Flag operations for observer
@@ -142,6 +177,8 @@ let isPending = (o: observer): bool => Int.bitwiseAnd(o.flags, flag_pending) !==
 let setPending = (o: observer): unit => o.flags = Int.bitwiseOr(o.flags, flag_pending)
 let clearPending = (o: observer): unit =>
   o.flags = Int.bitwiseAnd(o.flags, Int.bitwiseNot(flag_pending))
+let isDisposed = (o: observer): bool => Int.bitwiseAnd(o.flags, flag_disposed) !== 0
+let setDisposed = (o: observer): unit => o.flags = Int.bitwiseOr(o.flags, flag_disposed)
 
 // Flag operations for subs
 let isSubsDirty = (s: subs): bool => Int.bitwiseAnd(s.flags, flag_dirty) !== 0

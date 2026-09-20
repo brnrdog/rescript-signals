@@ -1,4 +1,6 @@
-type t<'a> = {
+// The record itself is declared in `Core` so the scheduler can write a
+// computed's result into it; this is the same type.
+type t<'a> = Core.cell<'a> = {
   id: int,
   /* Where the value is actually stored. Every read and write *inside* this
      package goes here; `value` below is an accessor installed over it, and
