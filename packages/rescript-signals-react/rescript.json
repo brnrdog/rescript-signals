@@ -20,7 +20,6 @@
     "mode": "automatic"
   },
   "dependencies": [
-    "@rescript/core",
     "@rescript/react",
     "rescript-signals"
   ],
