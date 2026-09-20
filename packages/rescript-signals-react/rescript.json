@@ -23,5 +23,5 @@
     "@rescript/react",
     "rescript-signals"
   ],
-  "dev-dependencies": ["zekr"],
+  "dev-dependencies": ["zekr"]
 }
