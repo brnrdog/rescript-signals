@@ -321,16 +321,16 @@ let runComputedCycle = (subs: Core.subs, ~clearPending: bool): unit => {
         if subs.deferEffectsUntilRecompute {
           // A custom equals decides whether anything downstream hears about it.
           let changed = try {
-            !cell.equals(cell.value, next)
+            !cell.equals(cell.raw, next)
           } catch {
           | _ => true
           }
           if changed {
-            cell.value = next
+            cell.raw = next
             subs.version = subs.version + 1
           }
         } else {
-          cell.value = next
+          cell.raw = next
           subs.version = subs.version + 1
         }
       }

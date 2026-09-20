@@ -29,13 +29,10 @@ let makeWith = (
   }
   Scheduler.currentComputedSubs := prev
 
-  let signal: Signal.t<'a> = {
-    id,
-    value: initialValue,
-    equals,
-    name,
-    subs,
-  }
+  // Built through the constructor rather than as a record literal: the `value`
+  // accessor lives on the prototype it installs, so a literal would produce a
+  // signal whose `.value` is undefined.
+  let signal: Signal.t<'a> = Signal.makeRecord(id, initialValue, equals, name, subs, Signal.get)
   subs.cell = Obj.magic(signal)
   subs.lastGlobalVersion = Core.globalVersion.contents
   Core.clearSubsDirty(subs)
