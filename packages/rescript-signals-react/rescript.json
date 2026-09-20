@@ -24,7 +24,4 @@
     "rescript-signals"
   ],
   "dev-dependencies": ["zekr"],
-  "compiler-flags": [
-    "-open RescriptCore"
-  ]
 }
