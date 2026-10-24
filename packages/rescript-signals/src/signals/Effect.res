@@ -5,6 +5,9 @@ type disposer = {dispose: unit => unit}
 // it has been disposed — lives on the observer, where the scheduler can see it.
 let runWithDisposer = (fn: unit => option<unit => unit>, ~name: option<string>=?): disposer => {
   let observer = Core.makeObserver(Id.make(), #Effect, fn, ~name?)
+  if Debug.enabled.contents {
+    Debug.created(~target=Obj.magic(observer), ~id=observer.id, ~kind=#Effect, ~name)
+  }
 
   // Initial run under tracking (no need to clearDeps - observer is fresh)
   let prev = Scheduler.currentObserver.contents
