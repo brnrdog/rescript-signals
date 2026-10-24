@@ -54,7 +54,7 @@ let make = () =>
     <h2 class="section-title"> {View.text("API")} </h2>
     <p class="section-lead">
       {View.text(
-        "Three modules, and that is the whole surface. Every signature below was read off the installed source.",
+        "Four modules, and that is the whole surface. Every signature below was read off the source.",
       )}
     </p>
     {Api.groups->Array.map(renderGroup)->View.fragment}

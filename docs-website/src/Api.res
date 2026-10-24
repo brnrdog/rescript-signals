@@ -256,4 +256,133 @@ disposer.dispose()
   closing: [],
 }
 
-let groups: array<group> = [signal, computed, effect]
+let debug = {
+  id: "debug",
+  name: "Debug",
+  lead: "Debug reports the reactive graph to a tool you install: every node created, every dependency, every write and every run. It is how devtools see what the library does, and it costs nothing until a hook is installed.",
+  entries: [
+    {
+      id: "debug-install",
+      label: "Debug.install",
+      signature: "Debug.install({emit, captureStacks}): unit",
+      summary: "Starts reporting events to emit.",
+      code: `Debug.install({
+  captureStacks: false,
+  emit: event =>
+    switch event {
+    | Created({id, kind, name}) => Console.log3("created", id, name)
+    | Written({id, changed}) => Console.log3("write", id, changed)
+    | RunStart({id}) => Console.log2("run", id)
+    | _ => ()
+    },
+})`,
+      notes: [
+        "Install before creating anything reactive. A node created earlier has no id and is never reported.",
+        "captureStacks records new Error().stack for every created node, so one without a ~name can still be traced to the code that made it. It costs a stack capture per node, so leave it off unless you need it.",
+        "Installing again replaces the hook.",
+      ],
+    },
+    {
+      id: "debug-event",
+      label: "Debug.event",
+      signature: "type event",
+      summary: "What a hook receives, in the order it happens.",
+      code: `type event =
+  | Created({id: int, kind: nodeKind, name: option<string>, stack: option<string>})
+  | Linked({source: int, target: int})   // target read source for the first time
+  | Unlinked({source: int, target: int}) // re-tracking dropped the dependency
+  | Written({id: int, changed: bool})    // Signal.set; changed is false when equals held
+  | RunStart({id: int})                  // a computed recomputes or an effect runs
+  | RunEnd({id: int, changed: bool, threw: bool})
+  | Disposed({id: int})
+  | Collected({id: int})                 // reclaimed by the garbage collector
+  | BatchStart                           // the outermost Signal.batch
+  | BatchEnd
+
+type nodeKind = [#Signal | #Computed | #Effect]`,
+      notes: [
+        "Computeds are lazy, so one often recomputes inside the effect that reads it: its RunStart and RunEnd nest within the effect's.",
+        "RunEnd reports whether a computed's value changed (always true for an effect). A computed whose ~equals held reports changed: false, and nothing downstream hears about it.",
+        "A batch's events end after its flush, so one batch is the writes in it and everything they caused.",
+      ],
+    },
+    {
+      id: "debug-uninstall",
+      label: "Debug.uninstall",
+      signature: "Debug.uninstall(): unit",
+      summary: "Stops reporting and forgets every id.",
+      code: `Debug.uninstall()`,
+      notes: ["Ids belong to one install: after uninstalling, the same node gets a new id the next time."],
+    },
+    {
+      id: "debug-nodes",
+      label: "Debug.nodes",
+      signature: "Debug.nodes(): array<int>",
+      summary: "The ids of every node still alive, oldest first.",
+      code: `let alive = Debug.nodes()
+Console.log(Array.length(alive))`,
+      notes: [],
+    },
+    {
+      id: "debug-inspect",
+      label: "Debug.inspect",
+      signature: "Debug.inspect(id): option<node>",
+      summary: "Reads one node: its value, its level, what it reads and what reads it.",
+      code: `type node = {
+  id: int,
+  kind: nodeKind,
+  name: option<string>,
+  level: int,             // the scheduler's run order
+  value: option<Obj.t>,   // None for an effect
+  sources: array<int>,    // ids of the nodes this one reads
+  observers: array<int>,  // ids of the nodes that read this one
+  dirty: bool,
+  disposed: bool,
+}
+
+switch Debug.inspect(id) {
+| Some({name, sources}) => Console.log2(name, sources)
+| None => () // collected, or created before install
+}`,
+      notes: ["inspect reads the live graph, so call it when you want a value, rather than expecting every write to carry one."],
+    },
+    {
+      id: "debug-id-of-signal",
+      label: "Debug.idOfSignal",
+      signature: "Debug.idOfSignal(signal): option<int>",
+      summary: "Finds a signal or computed in the graph, given the value itself.",
+      code: `let count = Signal.make(0, ~name="count")
+
+switch Debug.idOfSignal(count) {
+| Some(id) => Debug.inspect(id)
+| None => None // created before install
+}`,
+      notes: ["For a tool that holds a Signal.t some other library handed back, and wants to know which node it is."],
+    },
+    {
+      id: "debug-discovery",
+      label: "Finding the hooks",
+      signature: "globalThis[Symbol.for(\"rescript-signals.debug\")]",
+      summary: "Every loaded copy of the library announces itself, so a tool can find it without importing it.",
+      code: `// JavaScript
+const copies = globalThis[Symbol.for("rescript-signals.debug")] ?? []
+
+for (const copy of copies) {
+  // copy.version, copy.install, copy.uninstall,
+  // copy.nodes, copy.inspect, copy.idOfSignal
+  copy.install({ captureStacks: false, emit: event => console.log(event) })
+}`,
+      notes: [
+        "A page can hold several copies of the library, say an app and a component library built against separate ones. Installing into each instruments them all.",
+        "Check copy.version before relying on the shape: it is 1 today.",
+      ],
+    },
+  ],
+  closing: [
+    ("Cost", "While no hook is installed, each instrumentation point is one boolean check, and nothing allocates."),
+    ("Lifetime", "Nodes are held weakly, so a tool never keeps one alive."),
+    ("Scope", "Debug observes; it never changes what a signal, computed or effect does."),
+  ],
+}
+
+let groups: array<group> = [signal, computed, effect, debug]
