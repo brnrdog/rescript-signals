@@ -462,6 +462,7 @@ let disposeEffect = (observer: Core.observer): unit => {
   if !Core.isDisposed(observer) {
     Core.setDisposed(observer)
     if Debug.enabled.contents {
+      Debug.unlinkedAll(Obj.magic(observer), observer.firstDep)
       Debug.disposed(Obj.magic(observer))
     }
     switch observer.cleanup {

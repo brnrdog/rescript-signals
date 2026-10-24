@@ -69,15 +69,18 @@ let set = (signal: t<'a>, newValue: 'a): unit => {
   | _ => true
   }
 
-  if Debug.enabled.contents {
-    Debug.written(Obj.magic(signal.subs), shouldUpdate)
-  }
-
   if shouldUpdate {
     signal.value = newValue
     signal.subs.version = signal.subs.version + 1
     Core.globalVersion := Core.globalVersion.contents + 1
+    // After the value is stored, so a hook can inspect it, and before anything
+    // it causes runs.
+    if Debug.enabled.contents {
+      Debug.written(Obj.magic(signal.subs), true)
+    }
     Scheduler.notifySubs(signal.subs)
+  } else if Debug.enabled.contents {
+    Debug.written(Obj.magic(signal.subs), false)
   }
 }
 

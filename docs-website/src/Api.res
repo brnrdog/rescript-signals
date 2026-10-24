@@ -291,10 +291,10 @@ let debug = {
   | Created({id: int, kind: nodeKind, name: option<string>, stack: option<string>})
   | Linked({source: int, target: int})   // target read source for the first time
   | Unlinked({source: int, target: int}) // re-tracking dropped the dependency
-  | Written({id: int, changed: bool})    // Signal.set; changed is false when equals held
+  | Written({id: int, changed: bool})    // Signal.set, after the value is stored; changed is false when equals held
   | RunStart({id: int})                  // a computed recomputes or an effect runs
   | RunEnd({id: int, changed: bool, threw: bool})
-  | Disposed({id: int})
+  | Disposed({id: int})                  // after an Unlinked for each dependency it drops
   | Collected({id: int})                 // reclaimed by the garbage collector
   | BatchStart                           // the outermost Signal.batch
   | BatchEnd
@@ -321,7 +321,7 @@ type nodeKind = [#Signal | #Computed | #Effect]`,
       summary: "The ids of every node still alive, oldest first.",
       code: `let alive = Debug.nodes()
 Console.log(Array.length(alive))`,
-      notes: [],
+      notes: ["nodes and inspect need WeakRef, which every current engine has. Without it they return nothing, and events still flow, rather than holding every node alive."],
     },
     {
       id: "debug-inspect",

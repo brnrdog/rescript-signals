@@ -36,9 +36,6 @@ let makeWith = (
     throw(exn)
   }
   Scheduler.currentComputedSubs := prev
-  if debug {
-    Debug.runEnd(Obj.magic(subs), ~changed=true, ~threw=false)
-  }
 
   let signal: Signal.t<'a> = {
     id,
@@ -50,6 +47,10 @@ let makeWith = (
   subs.cell = Obj.magic(signal)
   subs.lastGlobalVersion = Core.globalVersion.contents
   Core.clearSubsDirty(subs)
+  // After the value is stored, so a hook can inspect it from RunEnd.
+  if debug {
+    Debug.runEnd(Obj.magic(subs), ~changed=true, ~threw=false)
+  }
 
   signal
 }
@@ -70,6 +71,7 @@ let make = (
 let dispose = (signal: Signal.t<'a>): unit => {
   let subs = signal.subs
   if Debug.enabled.contents {
+    Debug.unlinkedAll(Obj.magic(subs), subs.firstDep)
     Debug.disposed(Obj.magic(subs))
   }
   Core.clearSubsDeps(subs)

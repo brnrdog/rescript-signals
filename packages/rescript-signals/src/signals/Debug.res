@@ -66,9 +66,8 @@ type weakRef
 @send external weakGet: (weakMap, Obj.t) => Nullable.t<int> = "get"
 @send external weakSet: (weakMap, Obj.t, int) => unit = "set"
 
-let makeWeakRef: Obj.t => weakRef = %raw(`function (target) {
-  return typeof WeakRef === "function" ? new WeakRef(target) : { deref: function () { return target } }
-}`)
+let makeWeakRef: Obj.t => weakRef = %raw(`function (target) { return new WeakRef(target) }`)
+let hasWeakRef: unit => bool = %raw(`function () { return typeof WeakRef === "function" }`)
 @send external deref: weakRef => Nullable.t<Obj.t> = "deref"
 
 type registry
@@ -89,6 +88,9 @@ type entry = {
 }
 
 let ids: ref<weakMap> = ref(makeWeakMap())
+// Without WeakRef a node cannot be listed or inspected without being held for
+// good, so `nodes` and `inspect` are unavailable there. Events still flow.
+let trackNodes: ref<bool> = ref(false)
 let entries: Map.t<int, entry> = Map.make()
 let finalizers: ref<Nullable.t<registry>> = ref(Nullable.null)
 
@@ -106,10 +108,12 @@ let idOf = (node: Obj.t): option<int> => ids.contents->weakGet(node)->Nullable.t
 
 let created = (~target: Obj.t, ~cell: option<Obj.t>=?, ~id: int, ~kind: nodeKind, ~name) => {
   ids.contents->weakSet(target, id)
-  entries->Map.set(id, {kind, name, target: makeWeakRef(target), cell: cell->Option.map(makeWeakRef)})
-  switch finalizers.contents->Nullable.toOption {
-  | Some(registry) => registry->registerFinalizer(target, id)
-  | None => ()
+  if trackNodes.contents {
+    entries->Map.set(id, {kind, name, target: makeWeakRef(target), cell: cell->Option.map(makeWeakRef)})
+    switch finalizers.contents->Nullable.toOption {
+    | Some(registry) => registry->registerFinalizer(target, id)
+    | None => ()
+    }
   }
   let stack = switch current.contents {
   | Some({captureStacks: true}) => Some(captureStack())
@@ -129,6 +133,20 @@ let unlinked = (source: Obj.t, target: Obj.t) =>
   | (Some(source), Some(target)) => emit(Unlinked({source, target}))
   | _ => ()
   }
+
+// Every dependency edge of `target`, reported as dropped: for a node that is
+// being disposed and takes its links with it.
+let unlinkedAll = (target: Obj.t, first: option<Core.link>) => {
+  let link = ref(first)
+  while link.contents !== None {
+    switch link.contents {
+    | Some(l) =>
+      unlinked(Obj.magic(l.subs), target)
+      link := l.nextDep
+    | None => ()
+    }
+  }
+}
 
 let written = (subs: Obj.t, changed: bool) =>
   switch idOf(subs) {
@@ -175,6 +193,7 @@ let batchEnd = () => {
 let install = (hook: hook): unit => {
   current := Some(hook)
   if !enabled.contents {
+    trackNodes := hasWeakRef()
     ids := makeWeakMap()
     entries->Map.clear
     batchDepth := 0

@@ -159,7 +159,10 @@ let tests = Suite.make(
         effect.dispose()
         Computed.dispose(doubled)
       })
-      Assert.equal(log->Array.slice(~start=-2), ["dispose log", "dispose doubled"])
+      Assert.equal(
+        log->Array.slice(~start=-4),
+        ["unlink count -> log", "dispose log", "unlink count -> doubled", "dispose doubled"],
+      )
     }),
     Test.make("a throwing run is reported", () => {
       let log = record(() => {
@@ -257,6 +260,80 @@ let tests = Suite.make(
       let found = (Debug.idOfSignal(count), Debug.idOfSignal(doubled))
       Debug.uninstall()
       Assert.equal(found, (ids->Array.get(0), ids->Array.get(1)))
+    }),
+    Test.make("a computed's first value is inspectable from its RunEnd", () => {
+      let seen = ref(None)
+      Debug.install({
+        captureStacks: false,
+        emit: event =>
+          switch event {
+          | RunEnd({id}) =>
+            seen := Debug.inspect(id)->Option.flatMap(node => node.value)
+          | _ => ()
+          },
+      })
+      let count = Signal.make(2)
+      let _ = Computed.make(() => Signal.get(count) * 10)
+      Debug.uninstall()
+      Assert.equal(seen.contents, Some(Obj.magic(20)))
+    }),
+    Test.make("a write is inspectable with its new value, before what it causes runs", () => {
+      let at: ref<array<(string, option<Obj.t>)>> = ref([])
+      let countId = ref(-1)
+      Debug.install({
+        captureStacks: false,
+        emit: event =>
+          switch event {
+          | Created({id, name: Some("count")}) => countId := id
+          | Written({id, changed}) =>
+            let value = Debug.inspect(id)->Option.flatMap(node => node.value)
+            at := Array.concat(at.contents, [(changed ? "changed" : "same", value)])
+          | RunStart(_) => at := Array.concat(at.contents, [("run", None)])
+          | _ => ()
+          },
+      })
+      let count = Signal.make(1, ~name="count")
+      Effect.run(() => {
+        let _ = Signal.get(count)
+        None
+      })
+      Signal.set(count, 2)
+      Signal.set(count, 2)
+      Debug.uninstall()
+      Assert.equal(
+        at.contents->Array.slice(~start=1),
+        [("changed", Some(Obj.magic(2))), ("run", None), ("same", Some(Obj.magic(2)))],
+      )
+    }),
+    Test.make("without WeakRef, events flow but nothing is held or listed", () => {
+      let withoutWeakRef: (unit => 'a) => 'a = %raw(`function (fn) {
+        var saved = globalThis.WeakRef
+        globalThis.WeakRef = undefined
+        try { return fn() } finally { globalThis.WeakRef = saved }
+      }`)
+      let (events, listed, inspected) = withoutWeakRef(() => {
+        let events = ref(0)
+        let ids = []
+        Debug.install({
+          captureStacks: false,
+          emit: event =>
+            switch event {
+            | Created({id}) =>
+              events := events.contents + 1
+              ids->Array.push(id)->ignore
+            | _ => ()
+            },
+        })
+        let _ = Signal.make(1, ~name="a")
+        let result = (events.contents, Debug.nodes(), ids->Array.map(Debug.inspect))
+        Debug.uninstall()
+        result
+      })
+      Assert.combineResults([
+        Assert.equal(events, 1),
+        Assert.equal(listed, []),
+        Assert.equal(inspected->Array.map(Option.isSome), [false]),
+      ])
     }),
     Test.make("the library announces itself for devtools to find", () => {
       let found: bool = %raw(`(function () {
