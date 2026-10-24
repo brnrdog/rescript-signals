@@ -8,7 +8,7 @@ let neverEquals: ('a, 'a) => bool = (_a, _b) => false
 // record pointing at it, and the subs pointing back so the scheduler can store
 // each recomputed value. The consumer's function is stored as is — no wrapper
 // closure per computed.
-let makeWith = (
+let makeUntraced = (
   compute: unit => 'a,
   ~equals: ('a, 'a) => bool,
   ~deferEffectsUntilRecompute: bool,
@@ -16,11 +16,6 @@ let makeWith = (
 ): Signal.t<'a> => {
   let id = Id.make()
   let subs = Core.makeComputedSubs(compute, ~deferEffectsUntilRecompute)
-  let debug = Debug.enabled.contents
-  if debug {
-    Debug.created(~target=Obj.magic(subs), ~id, ~kind=#Computed, ~name)
-    Debug.runStart(Obj.magic(subs))
-  }
 
   // Initial computation under tracking to establish dependencies
   let prev = Scheduler.currentComputedSubs.contents
@@ -30,9 +25,45 @@ let makeWith = (
   } catch {
   | exn =>
     Scheduler.currentComputedSubs := prev
-    if debug {
-      Debug.runEnd(Obj.magic(subs), ~changed=false, ~threw=true)
-    }
+    throw(exn)
+  }
+  Scheduler.currentComputedSubs := prev
+
+  let signal: Signal.t<'a> = {
+    id,
+    value: initialValue,
+    equals,
+    name,
+    subs,
+  }
+  subs.cell = Obj.magic(signal)
+  subs.lastGlobalVersion = Core.globalVersion.contents
+  Core.clearSubsDirty(subs)
+
+  signal
+}
+
+// The same steps, reported to the installed hook. Kept apart so creating a
+// computed costs nothing extra without one.
+let makeTraced = (
+  compute: unit => 'a,
+  ~equals: ('a, 'a) => bool,
+  ~deferEffectsUntilRecompute: bool,
+  ~name: option<string>,
+): Signal.t<'a> => {
+  let id = Id.make()
+  let subs = Core.makeComputedSubs(compute, ~deferEffectsUntilRecompute)
+  Debug.created(~target=Obj.magic(subs), ~id, ~kind=#Computed, ~name)
+  Debug.runStart(Obj.magic(subs))
+
+  let prev = Scheduler.currentComputedSubs.contents
+  Scheduler.currentComputedSubs := Some(subs)
+  let initialValue = try {
+    compute()
+  } catch {
+  | exn =>
+    Scheduler.currentComputedSubs := prev
+    Debug.runEnd(Obj.magic(subs), ~changed=false, ~threw=true)
     throw(exn)
   }
   Scheduler.currentComputedSubs := prev
@@ -48,12 +79,15 @@ let makeWith = (
   subs.lastGlobalVersion = Core.globalVersion.contents
   Core.clearSubsDirty(subs)
   // After the value is stored, so a hook can inspect it from RunEnd.
-  if debug {
-    Debug.runEnd(Obj.magic(subs), ~changed=true, ~threw=false)
-  }
+  Debug.runEnd(Obj.magic(subs), ~changed=true, ~threw=false)
 
   signal
 }
+
+let makeWith = (compute, ~equals, ~deferEffectsUntilRecompute, ~name) =>
+  Debug.enabled.contents
+    ? makeTraced(compute, ~equals, ~deferEffectsUntilRecompute, ~name)
+    : makeUntraced(compute, ~equals, ~deferEffectsUntilRecompute, ~name)
 
 let make = (
   compute: unit => 'a,
