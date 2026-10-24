@@ -16,6 +16,11 @@ let makeWith = (
 ): Signal.t<'a> => {
   let id = Id.make()
   let subs = Core.makeComputedSubs(compute, ~deferEffectsUntilRecompute)
+  let debug = Debug.enabled.contents
+  if debug {
+    Debug.created(~target=Obj.magic(subs), ~id, ~kind=#Computed, ~name)
+    Debug.runStart(Obj.magic(subs))
+  }
 
   // Initial computation under tracking to establish dependencies
   let prev = Scheduler.currentComputedSubs.contents
@@ -25,6 +30,9 @@ let makeWith = (
   } catch {
   | exn =>
     Scheduler.currentComputedSubs := prev
+    if debug {
+      Debug.runEnd(Obj.magic(subs), ~changed=false, ~threw=true)
+    }
     throw(exn)
   }
   Scheduler.currentComputedSubs := prev
@@ -39,6 +47,10 @@ let makeWith = (
   subs.cell = Obj.magic(signal)
   subs.lastGlobalVersion = Core.globalVersion.contents
   Core.clearSubsDirty(subs)
+  // After the value is stored, so a hook can inspect it from RunEnd.
+  if debug {
+    Debug.runEnd(Obj.magic(subs), ~changed=true, ~threw=false)
+  }
 
   signal
 }
@@ -58,6 +70,10 @@ let make = (
 // The computed stays usable: the next read rebuilds its dependencies.
 let dispose = (signal: Signal.t<'a>): unit => {
   let subs = signal.subs
+  if Debug.enabled.contents {
+    Debug.unlinkedAll(Obj.magic(subs), subs.firstDep)
+    Debug.disposed(Obj.magic(subs))
+  }
   Core.clearSubsDeps(subs)
   Core.markDetached(subs)
   Core.setSubsDirty(subs)

@@ -86,6 +86,9 @@ let trackDepFromComputed = (computedSubs: Core.subs, sourceSubs: Core.subs): uni
     if !Core.isDetached(computedSubs) {
       Core.linkToSubs(sourceSubs, newLink)
     }
+    if Debug.enabled.contents {
+      Debug.linked(Obj.magic(sourceSubs), Obj.magic(computedSubs))
+    }
     currentComputedDepCursor := Some(newLink)
   } else {
     let currentVersion = currentTrackingVersion.contents
@@ -150,6 +153,9 @@ let trackDepFromComputed = (computedSubs: Core.subs, sourceSubs: Core.subs): uni
         if !Core.isDetached(computedSubs) {
           Core.linkToSubs(sourceSubs, newLink)
         }
+        if Debug.enabled.contents {
+          Debug.linked(Obj.magic(sourceSubs), Obj.magic(computedSubs))
+        }
         currentComputedDepCursor := Some(newLink)
       } else {
         currentComputedDepCursor := foundLink.contents
@@ -166,6 +172,9 @@ let trackDepFromEffect = (observer: Core.observer, sourceSubs: Core.subs): unit 
     newLink.lastTrackedVersion = currentTrackingVersion.contents
     Core.linkToDeps(observer, newLink)
     Core.linkToSubs(sourceSubs, newLink)
+    if Debug.enabled.contents {
+      Debug.linked(Obj.magic(sourceSubs), Obj.magic(observer))
+    }
     currentObserverDepCursor := Some(newLink)
   } else {
     let currentVersion = currentTrackingVersion.contents
@@ -226,6 +235,9 @@ let trackDepFromEffect = (observer: Core.observer, sourceSubs: Core.subs): unit 
         newLink.lastTrackedVersion = currentVersion
         Core.linkToDeps(observer, newLink)
         Core.linkToSubs(sourceSubs, newLink)
+        if Debug.enabled.contents {
+          Debug.linked(Obj.magic(sourceSubs), Obj.magic(observer))
+        }
         currentObserverDepCursor := Some(newLink)
       } else {
         currentObserverDepCursor := foundLink.contents
@@ -312,6 +324,10 @@ let runComputedCycle = (subs: Core.subs, ~clearPending: bool): unit => {
   let prevCursor = currentComputedDepCursor.contents
   currentComputedSubs := Some(subs)
   currentComputedDepCursor := subs.firstDep
+  let debug = Debug.enabled.contents
+  if debug {
+    Debug.runStart(Obj.magic(subs))
+  }
 
   try {
     switch subs.compute {
@@ -347,6 +363,9 @@ let runComputedCycle = (subs: Core.subs, ~clearPending: bool): unit => {
           // Stale - unlink from source's subscriber list and our dep list
           Core.unlinkFromSubs(l)
           Core.unlinkFromSubsDeps(subs, l)
+          if Debug.enabled.contents {
+            Debug.unlinked(Obj.magic(l.subs), Obj.magic(subs))
+          }
         }
         link := next
       | None => ()
@@ -355,6 +374,9 @@ let runComputedCycle = (subs: Core.subs, ~clearPending: bool): unit => {
 
     Core.clearSubsDirty(subs)
     subs.lastGlobalVersion = Core.globalVersion.contents
+    if debug {
+      Debug.runEnd(Obj.magic(subs), ~changed=subs.version !== previousVersion, ~threw=false)
+    }
 
     // Propagate only when computed output changed.
     if subs.first !== None && subs.version !== previousVersion {
@@ -390,6 +412,9 @@ let runComputedCycle = (subs: Core.subs, ~clearPending: bool): unit => {
     currentComputedSubs := prev
     currentComputedDepCursor := prevCursor
     currentTrackingVersion.contents = previousTrackingVersion
+    if debug {
+      Debug.runEnd(Obj.magic(subs), ~changed=false, ~threw=true)
+    }
     throw(exn)
   }
 }
@@ -406,7 +431,7 @@ let retrackComputed = (s: Core.subs): unit => {
 
 // Run an effect's body once: the previous run's cleanup first, then the body,
 // whose return value is the next cleanup.
-let runEffectBody = (observer: Core.observer): unit => {
+let runEffectBodyUntraced = (observer: Core.observer): unit => {
   switch observer.cleanup {
   | Some(cleanup) =>
     observer.cleanup = None
@@ -416,11 +441,30 @@ let runEffectBody = (observer: Core.observer): unit => {
   observer.cleanup = observer.run()
 }
 
+let runEffectBody = (observer: Core.observer): unit =>
+  if Debug.enabled.contents {
+    Debug.runStart(Obj.magic(observer))
+    try {
+      runEffectBodyUntraced(observer)
+    } catch {
+    | exn =>
+      Debug.runEnd(Obj.magic(observer), ~changed=true, ~threw=true)
+      throw(exn)
+    }
+    Debug.runEnd(Obj.magic(observer), ~changed=true, ~threw=false)
+  } else {
+    runEffectBodyUntraced(observer)
+  }
+
 // Release an effect: its cleanup runs once, its dependencies are unlinked, and
 // a run the queue still owes it becomes a no-op.
 let disposeEffect = (observer: Core.observer): unit => {
   if !Core.isDisposed(observer) {
     Core.setDisposed(observer)
+    if Debug.enabled.contents {
+      Debug.unlinkedAll(Obj.magic(observer), observer.firstDep)
+      Debug.disposed(Obj.magic(observer))
+    }
     switch observer.cleanup {
     | Some(cleanup) =>
       observer.cleanup = None
@@ -457,9 +501,15 @@ and retrackLiveEffect = (observer: Core.observer): unit => {
   let prevCursor = currentObserverDepCursor.contents
   currentObserver := Some(observer)
   currentObserverDepCursor := observer.firstDep
+  // Traced here rather than through runEffectBody, so that the dependencies
+  // the sweep below drops are reported inside the run that dropped them.
+  let debug = Debug.enabled.contents
+  if debug {
+    Debug.runStart(Obj.magic(observer))
+  }
 
   try {
-    runEffectBody(observer)
+    runEffectBodyUntraced(observer)
 
     // After run: unlink stale deps (version != current)
     let link = ref(observer.firstDep)
@@ -471,6 +521,9 @@ and retrackLiveEffect = (observer: Core.observer): unit => {
           // Stale - unlink from source's subscriber list and our dep list
           Core.unlinkFromSubs(l)
           Core.unlinkFromDeps(observer, l)
+          if Debug.enabled.contents {
+            Debug.unlinked(Obj.magic(l.subs), Obj.magic(observer))
+          }
         }
         link := next
       | None => ()
@@ -481,11 +534,17 @@ and retrackLiveEffect = (observer: Core.observer): unit => {
     currentObserver := prev
     currentObserverDepCursor := prevCursor
     currentTrackingVersion.contents = previousTrackingVersion
+    if debug {
+      Debug.runEnd(Obj.magic(observer), ~changed=true, ~threw=false)
+    }
   } catch {
   | exn =>
     currentObserver := prev
     currentObserverDepCursor := prevCursor
     currentTrackingVersion.contents = previousTrackingVersion
+    if debug {
+      Debug.runEnd(Obj.magic(observer), ~changed=true, ~threw=true)
+    }
     throw(exn)
   }
 
@@ -711,6 +770,12 @@ let schedule = (observer: Core.observer): unit => {
 let batch = fn => {
   let wasFlushing = flushing.contents
   flushing := true
+  // The batch's events end after its flush, so a devtool sees one batch as the
+  // writes in it and everything they caused.
+  let debug = Debug.enabled.contents
+  if debug {
+    Debug.batchStart()
+  }
 
   try {
     let result = fn()
@@ -720,11 +785,17 @@ let batch = fn => {
         flush()
       }
     }
+    if debug {
+      Debug.batchEnd()
+    }
     result
   } catch {
   | exn =>
     if !wasFlushing {
       flushing := false
+    }
+    if debug {
+      Debug.batchEnd()
     }
     throw(exn)
   }

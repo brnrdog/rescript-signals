@@ -1,14 +1,14 @@
 open Xote
 
-/* The page outline, derived from Api.groups so the navigation cannot list a
-   section that does not exist. */
+/* The page outline, derived from Api.groups and Api.tooling so the navigation
+   cannot list a section that does not exist. */
 
 type item = {id: string, label: string, level: int}
 
 let outline: array<item> = Array.flat([
   [{id: "getting-started", label: "Getting started", level: 1}],
   [{id: "api", label: "API", level: 1}],
-  Api.groups
+  Array.concat(Api.groups, Api.tooling)
   ->Array.map(group =>
     Array.concat(
       [{id: group.id, label: group.name, level: 2}],

@@ -21,13 +21,17 @@ let make = (initialValue: 'a, ~name: option<string>=?, ~equals: option<('a, 'a) 
   | None => defaultEquals
   }
 
-  {
+  let signal = {
     id,
     value: initialValue,
     equals: equalsFn,
     name,
     subs: Core.makeSubs(),
   }
+  if Debug.enabled.contents {
+    Debug.created(~target=Obj.magic(signal.subs), ~cell=Obj.magic(signal), ~id, ~kind=#Signal, ~name)
+  }
+  signal
 }
 
 // Optimized signal creation for computed backing signals (no equals check needed)
@@ -69,7 +73,14 @@ let set = (signal: t<'a>, newValue: 'a): unit => {
     signal.value = newValue
     signal.subs.version = signal.subs.version + 1
     Core.globalVersion := Core.globalVersion.contents + 1
+    // After the value is stored, so a hook can inspect it, and before anything
+    // it causes runs.
+    if Debug.enabled.contents {
+      Debug.written(Obj.magic(signal.subs), true)
+    }
     Scheduler.notifySubs(signal.subs)
+  } else if Debug.enabled.contents {
+    Debug.written(Obj.magic(signal.subs), false)
   }
 }
 
