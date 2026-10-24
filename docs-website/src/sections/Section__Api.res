@@ -54,8 +54,15 @@ let make = () =>
     <h2 class="section-title"> {View.text("API")} </h2>
     <p class="section-lead">
       {View.text(
-        "Four modules, and that is the whole surface. Every signature below was read off the source.",
+        "Signal, Computed and Effect make up the library. The signatures below are taken from the source.",
       )}
     </p>
     {Api.groups->Array.map(renderGroup)->View.fragment}
+    <div class="tooling">
+      <p class="section-label"> {View.text("Tooling")} </p>
+      <p class="section-lead">
+        {View.text("For building devtools on top of the library. Apps don't need this.")}
+      </p>
+    </div>
+    {Api.tooling->Array.map(renderGroup)->View.fragment}
   </section>

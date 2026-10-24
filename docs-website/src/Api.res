@@ -259,7 +259,7 @@ disposer.dispose()
 let debug = {
   id: "debug",
   name: "Debug",
-  lead: "Debug reports the reactive graph to a tool you install: every node created, every dependency, every write and every run. It is how devtools see what the library does, and it costs nothing until a hook is installed.",
+  lead: "Debug lets a tool observe the library: it reports nodes as they are created, the dependencies between them, writes and runs. Nothing is reported until a hook is installed.",
   entries: [
     {
       id: "debug-install",
@@ -381,8 +381,12 @@ for (const copy of copies) {
   closing: [
     ("Cost", "While no hook is installed, each instrumentation point is one boolean check, and nothing allocates."),
     ("Lifetime", "Nodes are held weakly, so a tool never keeps one alive."),
-    ("Scope", "Debug observes; it never changes what a signal, computed or effect does."),
+    ("Behavior", "Installing a hook does not change how signals, computeds or effects behave."),
   ],
 }
 
-let groups: array<group> = [signal, computed, effect, debug]
+/* The library itself. */
+let groups: array<group> = [signal, computed, effect]
+
+/* Modules for tools rather than apps, documented after the main ones. */
+let tooling: array<group> = [debug]
