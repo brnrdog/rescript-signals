@@ -6,5 +6,6 @@ Runner.runSuites([
   ComputedTests.tests,
   EffectTests.tests,
   LifecycleTests.tests,
+  DebugTests.tests,
   PropertyTests.tests,
 ])

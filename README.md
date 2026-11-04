@@ -111,6 +111,30 @@ Signal.batch(() => {
 let value = Signal.untrack(() => Signal.get(threshold)) // Read without tracking
 ```
 
+### Debug Hooks
+
+`Signals.Debug` lets a devtool watch the reactive graph. Install a hook and it receives an event for every node created, every dependency edge added or dropped, every write, every run of a computed or effect, every disposal, and every outermost batch:
+
+```rescript
+Signals.Debug.install({
+  captureStacks: false, // true records `new Error().stack` for each node created
+  emit: event =>
+    switch event {
+    | Created({id, kind, name}) => Console.log3("created", id, name)
+    | Written({id, changed}) => Console.log3("write", id, changed)
+    | RunStart({id}) => Console.log2("run", id)
+    | _ => ()
+    },
+})
+
+Signals.Debug.nodes() // ids of the nodes still alive
+Signals.Debug.inspect(id) // value, level, sources and observers of one node
+Signals.Debug.idOfSignal(count) // the id of a signal you hold
+Signals.Debug.uninstall()
+```
+
+Install before creating anything reactive: nodes created earlier have no id and are not reported. Without a hook, each instrumentation point costs one boolean check. Every loaded copy of the library also registers itself on `globalThis[Symbol.for("rescript-signals.debug")]`, so a tool can find and install into all of them without importing this module.
+
 All reactive primitives feature automatic dependency tracking — no manual subscriptions needed.
 
 Check the [documentation website](https://brnrdog.github.io/rescript-signals/) for the full API reference and examples.
