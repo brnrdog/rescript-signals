@@ -335,6 +335,38 @@ let tests = Suite.make(
         Assert.equal(inspected->Array.map(Option.isSome), [false]),
       ])
     }),
+    Test.make("inspecting a node from inside a run does not subscribe the runner", () => {
+      // `node.value` must read the stored value, not go through the `value`
+      // accessor: that accessor subscribes whoever is running, so a devtools
+      // snapshot would add an edge to the graph it is only reporting on.
+      let otherId = ref(-1)
+      let runs = ref(0)
+      Debug.install({
+        captureStacks: false,
+        emit: event =>
+          switch event {
+          | Created({id, name: Some("other")}) => otherId := id
+          | _ => ()
+          },
+      })
+      let read = Signal.make(0, ~name="read")
+      let other = Signal.make(0, ~name="other")
+      let dispose = Effect.runWithDisposer(() => {
+        runs := runs.contents + 1
+        let _ = Signal.get(read)
+        let _ = Debug.inspect(otherId.contents)->Option.flatMap(node => node.value)
+        None
+      })
+      let afterFirstRun = runs.contents
+      Signal.set(other, 1)
+      let afterWritingOther = runs.contents
+      dispose.dispose()
+      Debug.uninstall()
+      Assert.combineResults([
+        Assert.equal(afterFirstRun, 1),
+        Assert.equal(afterWritingOther, 1),
+      ])
+    }),
     Test.make("the library announces itself for devtools to find", () => {
       let found: bool = %raw(`(function () {
         var copies = globalThis[Symbol.for("rescript-signals.debug")]

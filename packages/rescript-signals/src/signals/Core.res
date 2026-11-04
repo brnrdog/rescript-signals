@@ -96,9 +96,16 @@ and Observer: {
 // The signal record, as the scheduler sees it when it writes a computed's
 // result. `Signal.t` is this type; it lives here so that `Subs.cell` can be
 // read back without a dependency on the `Signal` module.
+//
+// `raw` is the storage and `value` an accessor over it that subscribes the
+// current observer (installed on the prototype by `Signal.makeRecord`). The
+// scheduler therefore writes `raw`: writing `value` would recurse into the
+// getter, and reading it during a recompute would subscribe the computed to
+// itself.
 type cell<'a> = {
   id: int,
-  mutable value: 'a,
+  mutable raw: 'a,
+  value: 'a,
   equals: ('a, 'a) => bool,
   name: option<string>,
   subs: Subs.t,

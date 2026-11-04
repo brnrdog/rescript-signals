@@ -231,6 +231,60 @@ let tests = Suite.make(
       disposer.dispose()
       Assert.combineResults([result1, result2])
     }),
+    Test.make("value reads the current value", () => {
+      let signal = Signal.make(42)
+      Assert.equal(signal.value, 42, ~message="value should read the current value")
+    }),
+    Test.make("value sees a write", () => {
+      let signal = Signal.make(1)
+      Signal.set(signal, 2)
+      Assert.equal(signal.value, 2, ~message="value should see the new value")
+    }),
+    Test.make("value subscribes the enclosing effect", () => {
+      let signal = Signal.make(0)
+      let seen = ref(-1)
+      let disposer = Effect.runWithDisposer(() => {
+        seen := signal.value
+        None
+      })
+
+      let initial = Assert.equal(seen.contents, 0, ~message="Effect should see the initial value")
+      Signal.set(signal, 7)
+      let updated = Assert.equal(seen.contents, 7, ~message="value should subscribe like get")
+
+      disposer.dispose()
+      Assert.combineResults([initial, updated])
+    }),
+    Test.make("value refreshes a stale computed", () => {
+      let count = Signal.make(2)
+      let doubled = Computed.make(() => Signal.get(count) * 2)
+      let initial = Assert.equal(doubled.value, 4, ~message="Computed value should be 4")
+      Signal.set(count, 5)
+      let updated = Assert.equal(doubled.value, 10, ~message="Computed value should refresh to 10")
+      Assert.combineResults([initial, updated])
+    }),
+    Test.make("value inside untrack does not subscribe", () => {
+      let tracked = Signal.make(0)
+      let untracked = Signal.make(0)
+      let runCount = ref(0)
+      let disposer = Effect.runWithDisposer(() => {
+        runCount := runCount.contents + 1
+        let _ = tracked.value
+        let _ = Signal.untrack(() => untracked.value)
+        None
+      })
+
+      let afterInitial = runCount.contents
+      Signal.set(untracked, 1)
+      let result = Assert.equal(
+        runCount.contents,
+        afterInitial,
+        ~message="An untracked value read should not re-run the effect",
+      )
+
+      disposer.dispose()
+      result
+    }),
     Test.make("untrack returns the function result", () => {
       let signal = Signal.make(42)
       let result = Signal.untrack(() => {

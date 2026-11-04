@@ -295,7 +295,10 @@ let inspect = (id: int): option<node> =>
           kind,
           name: entry.name,
           level: subs.level,
-          value: cell->Nullable.toOption->Option.map(cell => cell.value),
+          // `raw`, not `value`: `value` is an accessor that subscribes the
+          // current observer and refreshes a stale computed, so inspecting a
+          // node would alter the graph it is reporting on.
+          value: cell->Nullable.toOption->Option.map(cell => cell.raw),
           sources: collectDeps(subs.firstDep),
           observers: collectSubs(subs.first),
           dirty: Core.isSubsDirty(subs),
