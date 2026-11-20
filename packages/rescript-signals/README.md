@@ -87,6 +87,11 @@ A computed you create and drop holds nothing open and adds no cost to writes on 
 sources. `Computed.dispose` exists to detach one that still has subscribers; it stays
 usable afterwards, since the next read rebuilds its dependencies.
 
+A failure is a result like any other. If the function throws, the computed holds what
+it threw, and every read throws it again until something the function read changes.
+`Computed.make` itself never throws, and a reader is subscribed before the failure is
+thrown, so an effect that read a failed computed runs again when it recovers.
+
 ### Effect
 
 Side-effect functions that re-run when dependencies change. Effects execute immediately and track any signals read during execution.
@@ -98,6 +103,25 @@ Effect.run(() => {
   Some(() => Console.log("cleanup")) // Optional cleanup
 })
 ```
+
+### Async values
+
+`Async.make` is a computed whose function returns a promise. What it reads before its
+first `await` is its dependencies, and a change to one fetches again:
+
+```rescript
+let userId = Signal.make("1")
+let user = Async.make(() => fetchUser(Signal.get(userId)))
+
+let greeting = Computed.make(() => "Hi " ++ Signal.get(user).name)
+```
+
+Until the first fetch settles there is no value, and a read throws `Async.NotReady`.
+To the rest of the graph that is an ordinary failure: `greeting` holds it and throws
+it in turn, then recomputes when the value arrives. An effect that ends in `NotReady`
+is waiting, not failing: it runs again once the value is there. While a later fetch is
+in flight, reads return the previous value, and `Async.isPending(fn)` tells whether
+`fn` read anything still loading. Only the latest fetch settles the value.
 
 ### Batching and Untracked Reads
 

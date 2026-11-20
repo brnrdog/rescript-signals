@@ -74,6 +74,9 @@ let fullName = Computed.make(() =>
 )
 ```
 
+If the function throws, the computed holds the failure: every read throws it again until
+a dependency changes, and an effect that read it runs again when it recovers.
+
 ### Effect
 
 Side-effect functions that re-run when dependencies change. Effects execute immediately and track any signals read during execution.
@@ -96,6 +99,19 @@ let disposer = Effect.runWithDispose(() => {
 
 // Later
 disposer.dispose()
+```
+
+### Async values
+
+`Async.make` is a computed whose function returns a promise; what it reads before its
+first `await` is its dependencies. Until the first fetch settles, a read throws
+`Async.NotReady`, which a computed holds like any failure and an effect simply waits
+out. Later fetches keep the previous value readable, and `Async.isPending(fn)` tells
+whether `fn` read anything still loading.
+
+```rescript
+let user = Async.make(() => fetchUser(Signal.get(userId)))
+let greeting = Computed.make(() => "Hi " ++ Signal.get(user).name)
 ```
 
 ### Batching and Untracked Reads

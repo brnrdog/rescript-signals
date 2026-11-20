@@ -46,19 +46,35 @@ let makeForComputed = (initialValue: 'a, ~name: option<string>=?): t<'a> => {
   }
 }
 
-// Optimized get - inlined hot path checks
-let get = (signal: t<'a>): 'a => {
-  // Ensure computed is fresh
+// A read that has more to do than track and return: bring a computed up to
+// date, then count a loading node or throw what a failed one holds. Tracking
+// comes before the throw, so a reader of a failed computed hears when it
+// recovers.
+let getSlow = (signal: t<'a>): 'a => {
   Scheduler.ensureComputedFresh(signal.subs)
-
-  // Track dependency if we're inside a computed or effect
   Scheduler.trackDep(signal.subs)
-
+  if Int.bitwiseAnd(signal.subs.flags, Core.flag_status) !== 0 {
+    Scheduler.readStatus(signal.subs)
+  }
   signal.value
 }
 
+// The common read is one test: nothing to settle and nothing to report.
+let get = (signal: t<'a>): 'a =>
+  if Int.bitwiseAnd(signal.subs.flags, Core.flag_slow_read) === 0 {
+    Scheduler.trackDep(signal.subs)
+    signal.value
+  } else {
+    getSlow(signal)
+  }
+
 let peek = (signal: t<'a>): 'a => {
-  Scheduler.ensureComputedFresh(signal.subs)
+  if Int.bitwiseAnd(signal.subs.flags, Core.flag_slow_read) !== 0 {
+    Scheduler.ensureComputedFresh(signal.subs)
+    if Int.bitwiseAnd(signal.subs.flags, Core.flag_status) !== 0 {
+      Scheduler.readStatus(signal.subs)
+    }
+  }
   signal.value
 }
 

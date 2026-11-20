@@ -21,6 +21,22 @@ let pendingComputedNeedsSort: ref<bool> = ref(false)
 let lastEnqueuedEffectLevel: ref<int> = ref(0)
 let lastEnqueuedComputedLevel: ref<int> = ref(0)
 
+// How many reads so far found their node loading. A run compares it before
+// and after to learn whether it read anything unsettled; `Async.isPending`
+// does the same around the function it is given.
+let loadingReads: ref<int> = ref(0)
+
+// After the value is read: count a loading node, and throw what an errored
+// one holds. Only reached when the node carries a status bit.
+let readStatus = (subs: Core.subs): unit => {
+  if Int.bitwiseAnd(subs.flags, Core.flag_loading) !== 0 {
+    loadingReads := loadingReads.contents + 1
+  }
+  if Core.isErrored(subs) {
+    Core.throwValue(subs.error)
+  }
+}
+
 // Queue for iterative dirty marking
 let dirtyQueue: array<Core.subs> = []
 
@@ -330,27 +346,48 @@ let runComputedCycle = (subs: Core.subs, ~clearPending: bool): unit => {
   }
 
   try {
+    let loadingBefore = loadingReads.contents
     switch subs.compute {
     | Some(compute) => {
         let cell: Core.cell<Obj.t> = Obj.magic(subs.cell)
-        let next = compute()
-        if subs.deferEffectsUntilRecompute {
-          // A custom equals decides whether anything downstream hears about it.
-          let changed = try {
-            !cell.equals(cell.value, next)
-          } catch {
-          | _ => true
+        switch compute() {
+        | next =>
+          let hadError = Core.isErrored(subs)
+          if hadError {
+            Core.clearFlag(subs, Core.flag_errored)
+            subs.error = Core.noCell
           }
+          // The first run, and a recovery from a failure, always count as a
+          // change; otherwise a custom equals decides whether anything
+          // downstream hears about it.
+          let changed =
+            !subs.deferEffectsUntilRecompute ||
+            previousVersion == 0 ||
+            hadError ||
+            try {
+              !cell.equals(cell.value, next)
+            } catch {
+            | _ => true
+            }
           if changed {
             cell.value = next
             subs.version = subs.version + 1
           }
-        } else {
-          cell.value = next
+        | exception exn =>
+          // A failure is a result like any other: held, thrown again by every
+          // read, and replaced by the next run, which only a change to what
+          // this run read before failing can cause.
+          Core.setFlag(subs, Core.flag_errored)
+          subs.error = Core.thrownValue(exn)
           subs.version = subs.version + 1
         }
       }
     | None => ()
+    }
+    if loadingReads.contents > loadingBefore {
+      Core.setFlag(subs, Core.flag_deps_loading)
+    } else if Int.bitwiseAnd(subs.flags, Core.flag_deps_loading) !== 0 {
+      Core.clearFlag(subs, Core.flag_deps_loading)
     }
 
     // After compute: unlink stale deps (version != current)
@@ -375,7 +412,7 @@ let runComputedCycle = (subs: Core.subs, ~clearPending: bool): unit => {
     Core.clearSubsDirty(subs)
     subs.lastGlobalVersion = Core.globalVersion.contents
     if debug {
-      Debug.runEnd(Obj.magic(subs), ~changed=subs.version !== previousVersion, ~threw=false)
+      Debug.runEnd(Obj.magic(subs), ~changed=subs.version !== previousVersion, ~threw=Core.isErrored(subs))
     }
 
     // Propagate only when computed output changed.
@@ -438,7 +475,12 @@ let runEffectBodyUntraced = (observer: Core.observer): unit => {
     cleanup()
   | None => ()
   }
-  observer.cleanup = observer.run()
+  // An effect that read a value not there yet is waiting, not failing: it has
+  // subscribed to what it read, and runs again when that changes.
+  observer.cleanup = switch observer.run() {
+  | cleanup => cleanup
+  | exception Core.NotReady => None
+  }
 }
 
 let runEffectBody = (observer: Core.observer): unit =>

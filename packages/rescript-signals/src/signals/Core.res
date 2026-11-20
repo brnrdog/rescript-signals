@@ -17,6 +17,35 @@ let flag_needs_settle = 9
 // flag is what makes that dequeue a no-op instead of a run that re-tracks the
 // effect's dependencies and brings it back from the dead.
 let flag_disposed = 16
+// Set on a computed whose last run threw: `error` holds what it threw, and a
+// read throws it again until a dependency changes and a run succeeds.
+@inline
+let flag_errored = 32
+// Set on an async computed while a fetch of its own is in flight.
+@inline
+let flag_fetching = 64
+// Set on a computed whose last run read something that was loading.
+@inline
+let flag_deps_loading = 128
+// Either loading bit: a read of such a node counts as reading something that
+// is not settled yet (see `Async.isPending`).
+@inline
+let flag_loading = 192
+// What a read has to look at after the value: an error to throw, or a loading
+// state to report. A settled, successful node carries none of these bits.
+@inline
+let flag_status = 224
+// Anything a read must do beyond tracking and returning the value: settle a
+// computed (dirty or detached), or look at its status. A plain signal and a
+// settled, successful computed carry none of these bits.
+@inline
+let flag_slow_read = 233
+
+// Thrown by a read of an async value that has none yet, and by a read of
+// anything computed from one. Effects and computeds treat it as "not yet":
+// a computed holds it like any failure, and an effect that ends in it simply
+// waits for what it read to change.
+exception NotReady
 
 // Global tracking version
 let trackingVersion: ref<int> = ref(0)
@@ -73,6 +102,9 @@ and Subs: {
     // recompute, so an unchanged result stops the propagation there.
     mutable deferEffectsUntilRecompute: bool,
     mutable lastGlobalVersion: int,
+    // What the last run threw, while `flag_errored` is set: the raw thrown
+    // value, so a JavaScript error is thrown again as itself.
+    mutable error: Obj.t,
   }
 } = Subs
 
@@ -125,6 +157,7 @@ let makeSubs = (): subs => {
   level: 0,
   deferEffectsUntilRecompute: false,
   lastGlobalVersion: 0,
+  error: noCell,
 }
 
 // Create subs for a computed (with compute function)
@@ -141,6 +174,7 @@ let makeComputedSubs = (compute: unit => 'a, ~deferEffectsUntilRecompute: bool=f
   level: 0,
   deferEffectsUntilRecompute,
   lastGlobalVersion: 0,
+  error: noCell,
 }
 
 // Create observer
@@ -182,6 +216,19 @@ let isSubsPending = (s: subs): bool => Int.bitwiseAnd(s.flags, flag_pending) !==
 let setSubsPending = (s: subs): unit => s.flags = Int.bitwiseOr(s.flags, flag_pending)
 let clearSubsPending = (s: subs): unit =>
   s.flags = Int.bitwiseAnd(s.flags, Int.bitwiseNot(flag_pending))
+
+let isErrored = (s: subs): bool => Int.bitwiseAnd(s.flags, flag_errored) !== 0
+let setFlag = (s: subs, flag: int): unit => s.flags = Int.bitwiseOr(s.flags, flag)
+let clearFlag = (s: subs, flag: int): unit =>
+  s.flags = Int.bitwiseAnd(s.flags, Int.bitwiseNot(flag))
+
+// The value a ReScript `catch` hands over, back to what was thrown: a
+// JavaScript error arrives wrapped, and is stored and thrown again unwrapped.
+let thrownValue: exn => Obj.t = %raw(`function (exn) {
+  return exn != null && exn.RE_EXN_ID === "JsExn" ? exn._1 : exn
+}`)
+
+let throwValue: Obj.t => 'a = %raw(`function (value) { throw value }`)
 
 // Whether a computed is currently detached from its sources
 let isDetached = (s: subs): bool => Int.bitwiseAnd(s.flags, flag_detached) !== 0

@@ -165,6 +165,24 @@ Signal.peek(doubled) // reads without recording one`,
       ],
     },
     {
+      id: "computed-failure",
+      label: "When fn throws",
+      signature: "Signal.get(computed) // throws what fn threw",
+      summary: "A failure is a result: the computed holds it, and every read throws it again.",
+      code: `let parsed = Computed.make(() => parseInt(Signal.get(input)))
+// Computed.make does not throw, even if the first run fails
+
+Signal.set(input, "not a number")
+Signal.get(parsed) // throws what parseInt threw
+
+Signal.set(input, "42")
+Signal.get(parsed) // 42`,
+      notes: [
+        "fn runs again only when something it read before failing changes, not on every read. A reader is subscribed before the failure is thrown, so an effect that read a failed computed runs again when it recovers.",
+        "A JavaScript error is thrown again as itself, not wrapped.",
+      ],
+    },
+    {
       id: "computed-dispose",
       label: "Computed.dispose",
       signature: "Computed.dispose(computed): unit",
@@ -191,6 +209,10 @@ Signal.get(doubled)`,
     (
       "Self-releasing",
       "A computed attaches to its sources only while it has a subscriber. Deriving a value inline is safe: one you drop keeps nothing alive and costs its sources nothing on write.",
+    ),
+    (
+      "Fails like a value",
+      "A failure is cached like a result: thrown by every read until a dependency changes, and passed on to whatever is computed from it.",
     ),
     (
       "Glitch-free",
@@ -251,6 +273,65 @@ Signal.set(interval, 500)`,
 disposer.dispose()
 // logs "cleaned up"; later writes to count do nothing`,
       notes: ["type disposer = {dispose: unit => unit}. Disposing twice is safe."],
+    },
+  ],
+  closing: [],
+}
+
+let async = {
+  id: "async",
+  name: "Async",
+  lead: "An async value is a computed whose function returns a promise. What it reads before its first await is its dependencies; a change to one fetches again.",
+  entries: [
+    {
+      id: "async-make",
+      label: "Async.make",
+      signature: "Async.make(fetch, ~name=?): Signal.t<'a>",
+      summary: "A signal of what fetch resolves with. Until it first resolves, a read throws Async.NotReady.",
+      code: `let userId = Signal.make("1")
+
+let user = Async.make(() => fetchUser(Signal.get(userId)))
+
+// Read like any signal, in a computed or an effect
+let name = Computed.make(() => Signal.get(user).name)
+
+Signal.set(userId, "2") // fetches again; reads keep the old value meanwhile`,
+      notes: [
+        "Only the latest fetch settles the value; one that resolves late is ignored. Settling writes the value and tells the readers without running fetch again.",
+        "A fetch that rejects or throws is a failure: reads throw it until a dependency changes and a fetch succeeds.",
+        "Like any computed it is lazy: with nothing reading it, a dependency change fetches again at the next read.",
+      ],
+    },
+    {
+      id: "async-not-ready",
+      label: "Async.NotReady",
+      signature: "exception NotReady",
+      summary: "Thrown by a read of an async value that has no value yet, and of anything computed from one.",
+      code: `let greeting = Computed.make(() => "Hi " ++ Signal.get(user).name)
+// Throws NotReady while user loads, then recomputes with the value
+
+Effect.run(() => {
+  Console.log(Signal.get(greeting))
+  None
+})
+// Logs nothing until user has loaded: the effect waits`,
+      notes: [
+        "A computed holds NotReady like any failure. An effect that ends in it is not failing, only waiting: it runs again when what it read changes.",
+      ],
+    },
+    {
+      id: "async-is-pending",
+      label: "Async.isPending",
+      signature: "Async.isPending(fn): bool",
+      summary: "Whether fn read anything still loading: a first load, or a fetch again.",
+      code: `Effect.run(() => {
+  let refreshing = Async.isPending(() => Signal.get(greeting))
+  setClass(toolbar, refreshing ? "dimmed" : "")
+  None
+})`,
+      notes: [
+        "Reads in fn are tracked as usual, so the effect or computed that asks is told again when the answer changes. A failure other than NotReady is thrown.",
+      ],
     },
   ],
   closing: [],
@@ -386,7 +467,7 @@ for (const copy of copies) {
 }
 
 /* The library itself. */
-let groups: array<group> = [signal, computed, effect]
+let groups: array<group> = [signal, computed, effect, async]
 
 /* Modules for tools rather than apps, documented after the main ones. */
 let tooling: array<group> = [debug]

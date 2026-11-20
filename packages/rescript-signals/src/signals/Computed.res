@@ -16,41 +16,23 @@ let makeWith = (
 ): Signal.t<'a> => {
   let id = Id.make()
   let subs = Core.makeComputedSubs(compute, ~deferEffectsUntilRecompute)
-  let debug = Debug.enabled.contents
-  if debug {
-    Debug.created(~target=Obj.magic(subs), ~id, ~kind=#Computed, ~name)
-    Debug.runStart(Obj.magic(subs))
-  }
-
-  // Initial computation under tracking to establish dependencies
-  let prev = Scheduler.currentComputedSubs.contents
-  Scheduler.currentComputedSubs := Some(subs)
-  let initialValue = try {
-    compute()
-  } catch {
-  | exn =>
-    Scheduler.currentComputedSubs := prev
-    if debug {
-      Debug.runEnd(Obj.magic(subs), ~changed=false, ~threw=true)
-    }
-    throw(exn)
-  }
-  Scheduler.currentComputedSubs := prev
-
   let signal: Signal.t<'a> = {
     id,
-    value: initialValue,
+    // Written by the first run below, before anything can read it.
+    value: Obj.magic(Core.noCell),
     equals,
     name,
     subs,
   }
   subs.cell = Obj.magic(signal)
-  subs.lastGlobalVersion = Core.globalVersion.contents
-  Core.clearSubsDirty(subs)
-  // After the value is stored, so a hook can inspect it from RunEnd.
-  if debug {
-    Debug.runEnd(Obj.magic(subs), ~changed=true, ~threw=false)
+  if Debug.enabled.contents {
+    Debug.created(~target=Obj.magic(subs), ~id, ~kind=#Computed, ~name)
   }
+
+  // The first run is an ordinary one: it records the dependencies, and a
+  // failure is held for the first read rather than thrown from here. The
+  // computed starts detached, so it records them without attaching.
+  Scheduler.recomputeAndLevel(subs)
 
   signal
 }

@@ -18,7 +18,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "rescript && node tests/RunTests.res.mjs",
+    "test": "rescript && node tests/RunTests.res.mjs && node tests/AsyncTests.res.mjs",
     "build": "rescript",
     "clean": "rescript clean",
     "prepack": "node scripts/prepack.cjs",
