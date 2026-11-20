@@ -179,6 +179,8 @@ function releasesFromChangelog() {
     // Newer entries are prepended above the file's own `# Changelog` header, so
     // a section can run into it. Stop there — the boilerplate paragraph that
     // follows it belongs to the file, not to this release.
+    // A section runs to the next release heading, or to the end of the file.
+    const end = i + 1 < headings.length ? headings[i + 1].index : lines.length
     let body = lines.slice(index + 1, end)
     const fileHeader = body.findIndex((line) => /^#\s/.test(line))
     if (fileHeader !== -1) body = body.slice(0, fileHeader)
